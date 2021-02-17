@@ -216,13 +216,13 @@ module::
 These Type blocks can have a number of sub-blocks.  Most sub-blocks are
 optional,  The available standard sub-blocks are:
 
-- `// Status: DEPRECATED`
-- `// Topics: Comma, Delimited, Topic, List`
-- `// Usage:`
-- `// Description:`
-- `// Arguments:`
-- `// Figure:` or `// Figures`
-- `// Example:` or `// Examples:`
+- ``// Status: DEPRECATED``
+- ``// Topics: Comma, Delimited, Topic, List``
+- ``// Usage:``
+- ``// Description:``
+- ``// Arguments:``
+- ``// Figure:`` or ``// Figures``
+- ``// Example:`` or ``// Examples:``
 
 
 Status Block
