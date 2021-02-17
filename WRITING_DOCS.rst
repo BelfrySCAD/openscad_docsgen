@@ -391,7 +391,7 @@ an image unless ``3D``, ``Spin``, ``FlatSpin`` or ``Anim`` is explicitly given.
 
 If any lines of the Example script begin with ``--``, then they are not shown in
 the example script output to the documentation, but they *are* included in the
-script used to generate the example image, without the ``--``, of course.
+script used to generate the example image, without the ``--``, of course::
 
     // Example: Multi-line example.
     //   --$fn = 72; // Lines starting with -- aren't shown in docs example text.
@@ -438,10 +438,13 @@ markdown block that has the block header, title, and a following body::
     //   Performs an atypical thing.
 
 **Result:** For Typical Cases
+
 Does typical things.
+
 Or something like that.
 
 **Result:** For Atypical Cases
+
 Performs an atypical thing.
 
 
@@ -531,6 +534,7 @@ separated by ``=`` (equals signs)::
     //   "a"/"b" = Anchor for the joiner Located at the front side of the shape.
 
 **Anchors:** by Name
+
 +--------------------+--------------------------------------------------------+
 | Link Name          | Description                                            |
 +====================+========================================================+
@@ -538,6 +542,8 @@ separated by ``=`` (equals signs)::
 +--------------------+--------------------------------------------------------+
 | ``"a"`` / ``"b"``  | Anchor for the joiner at the front side of the shape.  |
 +--------------------+--------------------------------------------------------+
+
+You can have multiple subtables, separated by a line with only three dashes: ``---``::
 
     // DefineHeader(Table:^Pos Arg|What it Does||^Names Arg|What it Does): Args
     // Args:
@@ -548,6 +554,7 @@ separated by ``=`` (equals signs)::
     //   qux = The baz argument.
 
 **Args:**
+
 +-------------+--------------------------------------------------------+
 | Pos Arg     | What it Does                                           |
 +=============+========================================================+
