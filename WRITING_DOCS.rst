@@ -214,7 +214,7 @@ module::
 
 
 These Type blocks can have a number of sub-blocks.  Most sub-blocks are
-optional,  The available standard sub-blocks are::
+optional,  The available standard sub-blocks are:
 
 - `// Status: DEPRECATED`
 - `// Topics: Comma, Delimited, Topic, List`
@@ -323,7 +323,7 @@ treats each line of the body as a separate Figure block::
 
 The metadata of the Figure block can contain various directives to alter how
 the image will be generated.  These can be comma separated to give multiple
-metadata directives::
+metadata directives:
 
 - `NORENDER`: Don't generate an image for this example, but show the example text.
 - `Hide`: Generate, but don't show script or image.  This can be used to generate images to be manually displayed in markdown text blocks.
@@ -365,7 +365,7 @@ Any images, if generated, will be created by running it in OpenSCAD::
 
 The metadata of the Example block can contain various directives to alter how
 the image will be generated.  These can be comma separated to give multiple
-metadata directives::
+metadata directives:
 
 - `NORENDER`: Don't generate an image for this example, but show the example text.
 - `Hide`: Generate, but don't show script or image.  This can be used to generate images to be manually displayed in markdown text blocks.
