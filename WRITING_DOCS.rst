@@ -440,7 +440,6 @@ markdown block that has the block header, title, and a following body::
 **Result:** For Typical Cases
 
 Does typical things.
-
 Or something like that.
 
 **Result:** For Atypical Cases
@@ -468,9 +467,7 @@ This is a simple reason.
 **Reason:**
 
 This is a complex reason.
-
 It is a multi-line explanation
-
 about why this does what it does.
 
 
