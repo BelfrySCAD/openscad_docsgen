@@ -32,7 +32,7 @@ class ImageRequest(object):
         self.errors = []
 
     def starting(self):
-        if self.starting_cb is not None:
+        if self.starting_cb:
             self.starting_cb(self)
 
     def completed(self, status, osc=None):
@@ -45,7 +45,7 @@ class ImageRequest(object):
             self.errors = osc.errors
         else:
             self.success = True
-        if self.completion_cb is not None:
+        if self.completion_cb:
             self.completion_cb(self)
 
 
@@ -57,9 +57,10 @@ class ImageManager(object):
 
     def __init__(self):
         self.requests = []
-        self.imgroot = ""
         self.test_only = False
-        self.hashes = {}
+
+    def purge_requests(self):
+        self.requests = []
 
     def new_request(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None):
         if "NORENDER" in image_meta:
@@ -67,8 +68,7 @@ class ImageManager(object):
         req = ImageRequest(src_file, src_line, image_file, script_lines, image_meta, starting_cb, completion_cb)
         self.requests.append(req)
 
-    def process_requests(self, imgroot, test_only=False):
-        self.imgroot = imgroot
+    def process_requests(self, test_only=False):
         self.test_only = test_only
         for req in self.requests:
             self.process_request(req)
@@ -77,39 +77,40 @@ class ImageManager(object):
     def process_request(self, req):
         req.starting()
 
-        script_file = "tmp_{0}.scad".format(req.image_file.replace(".", "_"))
-        targ_img_file = self.imgroot + req.image_file
-        new_img_file = self.imgroot + "_new_" + req.image_file
+        dir_name = os.path.dirname(req.image_file)
+        base_name = os.path.basename(req.image_file)
+        file_base, file_ext = os.path.splitext(base_name)
+        script_file = "tmp_{0}.scad".format(base_name.replace(".", "_"))
+        targ_img_file = req.image_file
+        new_img_file = "tmp_{0}{1}".format(file_base, file_ext)
 
-        no_vp = True
+        camera = None
         if "FlatSpin" in req.image_meta:
             req.script_lines.insert(0, "$vpr = [55, 0, 360*$t];")
-            no_vp = False
         elif "Spin" in req.image_meta:
             match = self._vpr_re.search(req.image_meta)
             if match:
                 req.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
             else:
                 req.script_lines.insert(0, "$vpr = [90-45*cos(360*$t), 0, 360*$t];")
-            no_vp = False
+        elif "3D" in req.image_meta:
+            camera = [0,0,0,55,0,25,444]
         elif "2D" in req.image_meta:
-            req.script_lines.insert(0, "$vpr = [0, 0, 0];")
-            no_vp = False
+            camera = [0,0,0,0,0,0,444]
         else:
             match = self._vpr_re.search(req.image_meta)
             if match:
                 req.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
-                no_vp = False
+            else:
+                camera = [0,0,0,55,0,25,444]
 
         match = self._vpt_re.search(req.image_meta)
         if match:
             req.script_lines.insert(0, "$vpt = [{}];".format(match.group(1)))
-            no_vp = False
 
         match = self._vpd_re.search(req.image_meta)
         if match:
-            req.script_lines.insert(0, "$vpd = {};".format(m.group(1)))
-            no_vp = False
+            req.script_lines.insert(0, "$vpd = {};".format(match.group(1)))
 
         with open(script_file, "w") as f:
             for line in req.script_lines:
@@ -118,31 +119,43 @@ class ImageManager(object):
         m = self._size_re.search(req.image_meta)
         if m:
             imgsize = (int(m.group(1)), int(m.group(2)))
-        elif "Huge" in req.image_meta:
-            imgsize = (800, 600)
-        elif "Big" in req.image_meta:
-            imgsize = (640, 480)
-        elif "Med" in req.image_meta:
-            imgsize = (480, 360)
-        else:  # Small
+        else:
             imgsize = (320, 240)
+
+        if "Small" in req.image_meta:
+            imgsize = [0.75*x for x in imgsize]
+        elif "Med" in req.image_meta:
+            imgsize = [1.5*x for x in imgsize]
+        elif "Big" in req.image_meta:
+            imgsize = [2.0*x for x in imgsize]
+        elif "Huge" in req.image_meta:
+            imgsize = [2.5*x for x in imgsize]
 
         render_mode = RenderMode.preview
         if self.test_only:
             render_mode = RenderMode.test_only
-        elif "FR" in req.image_meta:
+        elif "Render" in req.image_meta:
             render_mode = RenderMode.render
 
+        no_vp = True
+        for line in req.script_lines:
+            if "$vp" in line:
+                no_vp = False
+
         osc = OpenScadRunner(
-            scriptfile,
+            script_file,
             new_img_file,
             animate=36 if (("Spin" in req.image_meta or "Anim" in req.image_meta) and not self.test_only) else None,
             imgsize=imgsize, antialias=2,
-            auto_center=no_vp, viewall=no_vp,
+            orthographic=True,
+            camera=camera,
+            auto_center=no_vp, view_all=no_vp,
             show_edges="Edges" in req.image_meta,
-            render_mode=render_mode
+            render_mode=render_mode,
         )
         osc.run()
+
+        os.unlink(script_file)
 
         if not osc.good():
             req.completed("FAIL", osc)
@@ -152,18 +165,19 @@ class ImageManager(object):
             req.completed("SKIP", osc)
             return
 
+        os.makedirs(os.path.dirname(targ_img_file), exist_ok=True)
+
         # Time to compare image.
         if not os.path.isfile(targ_img_file):
             os.rename(new_img_file, targ_img_file)
             req.completed("NEW", osc)
+        elif self.image_compare(targ_img_file, new_img_file):
+            os.unlink(new_img_file)
+            req.completed("SKIP", osc)
         else:
-            if self.image_compare(targ_img_file, new_img_file):
-                os.unlink(new_img_file)
-                req.completed("SKIP", osc)
-            else:
-                os.unlink(targ_img_file)
-                os.rename(new_img_file, targ_img_file)
-                req.completed("REPLACE", osc)
+            os.unlink(targ_img_file)
+            os.rename(new_img_file, targ_img_file)
+            req.completed("REPLACE", osc)
 
     @staticmethod
     def image_compare(file1, file2, max_rms=2.0):

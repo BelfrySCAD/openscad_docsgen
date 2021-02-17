@@ -43,7 +43,7 @@ setup(
     install_requires=[
         'setuptools',
         'Pillow>=7.2.0',
-        'openscad_runner>=1.0.2'
+        'openscad_runner>=1.0.7'
     ],
     data_files=data_files,
     entry_points = {

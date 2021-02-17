@@ -323,12 +323,12 @@ metadata directives::
 - `Spin`: Animate camera orbit around the `[0,1,1]` axis to display all sides of an object.
 - `FlatSpin`: Animate camera orbit around the Z axis, above the XY plane.
 - `Anim`: Make an animation where `$t` varies from `0.0` to almost `1.0`.
-- `Small`: Make the image small sized.  (The default)
+- `Small`: Make the image small sized.
 - `Med`: Make the image medium sized.
 - `Big`: Make the image big sized.
 - `Huge`: Make the image huge sized.
 - `Size=880x640`: Make the image 880 by 640 pixels in size.
-- `FR`: Force full rendering from OpenSCAD, instead of the normal preview.
+- `Render`: Force full rendering from OpenSCAD, instead of the normal preview.
 - `Edges`: Highlight face edges.
 
 
@@ -365,12 +365,12 @@ metadata directives::
 - `Spin`: Animate camera orbit around the `[0,1,1]` axis to display all sides of an object.
 - `FlatSpin`: Animate camera orbit around the Z axis, above the XY plane.
 - `Anim`: Make an animation where `$t` varies from `0.0` to almost `1.0`.
-- `Small`: Make the image small sized.  (The default)
+- `Small`: Make the image small sized.
 - `Med`: Make the image medium sized.
 - `Big`: Make the image big sized.
 - `Huge`: Make the image huge sized.
 - `Size=880x640`: Make the image 880 by 640 pixels in size.
-- `FR`: Force full rendering from OpenSCAD, instead of the normal preview.
+- `Render`: Force full rendering from OpenSCAD, instead of the normal preview.
 - `Edges`: Highlight face edges.
 
 Modules will default to generating and displaying the image as if the ``3D``
