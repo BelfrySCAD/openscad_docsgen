@@ -1,11 +1,23 @@
-# Formatting Comments for Docs
+Formatting Comments for Docs
+============================
 
 Documentation blocks are all based around a single simple syntax::
 
-    // BlockName(Metadata): TitleText
+    // Block Name(Metadata): TitleText
     //   Body line 1
     //   Body line 2
     //   Body line 3
+
+- The Block Name is one or two words, both starting with a capital letter.
+- The Metadata is in parentheses.  It is optional, and can contain fairly arbitrary
+  text, as long as it doesn't include newlines or parentheses. If the Metadata part
+  is not given, the parentheses are optional.
+- A colon ``:`` will always follow after the Block Name and optional Metadata.
+- The TitleText will be preceded by a space `` ``, and can contain arbitrary text,
+  as long as it contains no newlines.  The TitleText part is also optional for
+  some header blocks.
+- The body will contain zero or more lines of text indented by three spaces ``   ``
+  after the comment markers.  Each line can contain arbitrary text.
 
 So, for example, a Figure block to show a 640x480 animated GIF of a spinning
 shape may look like::
