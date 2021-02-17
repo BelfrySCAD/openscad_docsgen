@@ -1,9 +1,13 @@
+################################
 OpenSCAD Documentation Generator
-================================
+################################
 
 This package generates wiki-ready markdown documentation pages from in-line source code comments.
 This is similar to Doxygen or JavaDoc, but designed for use with OpenSCAD code.  Example images
 can be generated automatically from short example scripts.
+
+Documentation about how to add documentation comments to OpenSCAD code can be found `Here https://github.com/revarbat/openscad_docsgen/blob/main/WRITING_DOCS.rst`
+
 
 Using openscad-docsgen
 ----------------------
@@ -28,4 +32,5 @@ To write out a Table of Contents markdown file, use the ``-t`` flag::
 To write out a CheatSheet markdown file, use the ``-c`` flag::
 
     % openscad_docsgen -c *.scad
+
 
