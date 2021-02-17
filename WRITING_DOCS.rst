@@ -1,5 +1,5 @@
-Formatting Comments for Docs
-============================
+Formatting Comments for Documenting OpenSCAD Code
+=================================================
 
 Documentation blocks are all based around a single simple syntax::
 
