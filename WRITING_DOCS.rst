@@ -462,11 +462,15 @@ line blocks::
     //   about why this does what it does.
 
 **Reason:**
+
 This is a simple reason.
 
 **Reason:**
+
 This is a complex reason.
+
 It is a multi-line explanation
+
 about why this does what it does.
 
 
@@ -496,6 +500,7 @@ numbered list block::
     //   Roll on the ground to smother the flames.
 
 **Steps:** How to handle being on fire.
+
 1. Stop running around and panicing.
 2. Drop to the ground.
 3. Roll on the ground to smother the flames.
