@@ -53,7 +53,7 @@ def block_link(item, srcfile="", prefix="", shorthand=False):
     return "{}[{}]({}#{})".format(
         prefix,
         mkdn_esc(item.subtitle if shorthand else str(item)),
-        srcfile,
+        (srcfile + ".md") if srcfile else "",
         header_link(str(item))
     )
 
@@ -228,6 +228,7 @@ class TableBlock(GenericBlock):
             tables.append(table)
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
+        out.append("")
         for table in tables:
             out.extend(table)
             out.append("")
@@ -792,7 +793,7 @@ class DocsGenParser(object):
                     for item in section.children:
                         if isinstance(item,ItemBlock):
                             items.append( (item, file_block) )
-        sorted_items = sorted(items, key=lambda x: str(x[0]))
+        sorted_items = sorted(items, key=lambda x: x[0].subtitle.lower())
         out = []
         letters_found = []
         out.append("# Alphabetical Index")
@@ -807,20 +808,20 @@ class DocsGenParser(object):
                         ltr_items.append( (item, fblock) )
             if ltr_items:
                 out.append("---")
-                out.append("## {}".format(letter))
+                out.append("### {}".format(letter))
                 letters_found.append(letter)
             for item, fblock in ltr_items:
-                out.append(block_link(item, srcfile=fblock.src_file, prefix="- ", shorthand=True) + " ({})".format(mkdn_esc(fblock.src_file)))
+                out.append(block_link(item, srcfile=fblock.src_file, prefix="- ", shorthand=True) + " (in {})".format(mkdn_esc(fblock.src_file)))
         digit_items = [
             (item, fblock)  for item, fblock in sorted_items
             if item.subtitle.strip() and item.subtitle.strip()[0].isdigit()
         ]
         if digit_items:
             out.append("---")
-            out.append("## 0")
+            out.append("### 0")
             letters_found.append('0')
         for item, fblock in digit_items:
-            out.append(block_link(item, srcfile=fblock.src_file, prefix="- ", shorthand=True) + " ({})".format(mkdn_esc(fblock.src_file)))
+            out.append(block_link(item, srcfile=fblock.src_file, prefix="- ", shorthand=True) + " (in {})".format(mkdn_esc(fblock.src_file)))
         ltrlinks = ""
         for ltr in letters_found:
             ltrlinks += "[{0}](#{0}) ".format(ltr)
@@ -844,42 +845,52 @@ class DocsGenParser(object):
                 if not isinstance(section,SectionBlock):
                     continue
                 sect_shown = False
+                consts = []
                 for item in section.children:
                     if not isinstance(item,ItemBlock):
                         continue
-                    lines = []
+                    if item.title != "Constant":
+                        continue
+                    consts.append("[`{0}`]({1}.md#{2})".format(
+                        item.subtitle,
+                        file_block.src_file,
+                        header_link(str(item))
+                    ))
+                lines = []
+                for item in section.children:
+                    if not isinstance(item,ItemBlock):
+                        continue
                     if item.title == "Constant":
-                        lines.append("[`{0}`]({1}#{2})".format(
-                            item.subtitle,
-                            file_block.src_file,
-                            header_link(str(item))
-                        ))
-                        lines.append("")
-                    else:
-                        usages = [
-                            usage
-                            for usage in item.children
-                            if usage.title == "Usage"
-                        ]
-                        for usage in usages:
-                            for line in usage.body:
-                                lines.append("[`{0}`]({1}#{2})".format(
-                                    line,
-                                    file_block.src_file,
-                                    header_link(str(item))
-                                ))
-                        if lines:
-                            lines.append("")
+                        continue
+                    item_name = re.sub(r'[^A-Za-z0-9_$]', r'', item.subtitle)
+                    link = "[{0}]({1}.md#{2})".format(
+                        item_name,
+                        file_block.src_file,
+                        header_link(str(item))
+                    )
+                    usages = [
+                        usage
+                        for usage in item.children
+                        if usage.title == "Usage"
+                    ]
+                    for usage in usages:
+                        for line in usage.body:
+                            lines.append("> <code>{}</code>".format(mkdn_esc(line.replace(item_name,link))))
                     if lines:
-                        if not file_shown:
-                            out.append("---")
-                            out.append("### {}".format(mkdn_esc(str(file_block))))
-                            file_shown = True
-                        if not sect_shown:
-                            out.append("#### {}".format(mkdn_esc(str(section))))
-                            sect_shown = True
-                        for line in lines:
-                            out.append(mkdn_esc(line))
+                        lines.append("")
+
+                if consts or lines:
+                    if not file_shown:
+                        out.append("---")
+                        out.append("### {}".format(mkdn_esc(str(file_block))))
+                        file_shown = True
+                    if not sect_shown:
+                        out.append("#### {}".format(mkdn_esc(str(section))))
+                        sect_shown = True
+                if consts:
+                    out.append("Constants: " + (" ".join(mkdn_esc(x) for x in consts)))
+                for line in lines:
+                    out.append(line)
             out.append("")
         outfile = os.path.join(self.docs_dir, "CheatSheet.md")
         print("Writing {}...".format(outfile))
