@@ -214,15 +214,15 @@ module::
 
 
 These Type blocks can have a number of sub-blocks.  Most sub-blocks are
-optional,  The available standard sub-blocks are::
+optional,  The available standard sub-blocks are:
 
-- `// Status: DEPRECATED`
-- `// Topics: Comma, Delimited, Topic, List`
-- `// Usage:`
-- `// Description:`
-- `// Arguments:`
-- `// Figure:` or `// Figures`
-- `// Example:` or `// Examples:`
+- ``// Status: DEPRECATED``
+- ``// Topics: Comma, Delimited, Topic, List``
+- ``// Usage:``
+- ``// Description:``
+- ``// Arguments:``
+- ``// Figure:`` or ``// Figures``
+- ``// Example:`` or ``// Examples:``
 
 
 Status Block
@@ -323,7 +323,7 @@ treats each line of the body as a separate Figure block::
 
 The metadata of the Figure block can contain various directives to alter how
 the image will be generated.  These can be comma separated to give multiple
-metadata directives::
+metadata directives:
 
 - `NORENDER`: Don't generate an image for this example, but show the example text.
 - `Hide`: Generate, but don't show script or image.  This can be used to generate images to be manually displayed in markdown text blocks.
@@ -365,7 +365,7 @@ Any images, if generated, will be created by running it in OpenSCAD::
 
 The metadata of the Example block can contain various directives to alter how
 the image will be generated.  These can be comma separated to give multiple
-metadata directives::
+metadata directives:
 
 - `NORENDER`: Don't generate an image for this example, but show the example text.
 - `Hide`: Generate, but don't show script or image.  This can be used to generate images to be manually displayed in markdown text blocks.
@@ -391,7 +391,7 @@ an image unless ``3D``, ``Spin``, ``FlatSpin`` or ``Anim`` is explicitly given.
 
 If any lines of the Example script begin with ``--``, then they are not shown in
 the example script output to the documentation, but they *are* included in the
-script used to generate the example image, without the ``--``, of course.
+script used to generate the example image, without the ``--``, of course::
 
     // Example: Multi-line example.
     //   --$fn = 72; // Lines starting with -- aren't shown in docs example text.
@@ -438,10 +438,12 @@ markdown block that has the block header, title, and a following body::
     //   Performs an atypical thing.
 
 **Result:** For Typical Cases
+
 Does typical things.
 Or something like that.
 
 **Result:** For Atypical Cases
+
 Performs an atypical thing.
 
 
@@ -459,9 +461,11 @@ line blocks::
     //   about why this does what it does.
 
 **Reason:**
+
 This is a simple reason.
 
 **Reason:**
+
 This is a complex reason.
 It is a multi-line explanation
 about why this does what it does.
@@ -493,6 +497,7 @@ numbered list block::
     //   Roll on the ground to smother the flames.
 
 **Steps:** How to handle being on fire.
+
 1. Stop running around and panicing.
 2. Drop to the ground.
 3. Roll on the ground to smother the flames.
@@ -531,6 +536,7 @@ separated by ``=`` (equals signs)::
     //   "a"/"b" = Anchor for the joiner Located at the front side of the shape.
 
 **Anchors:** by Name
+
 +--------------------+--------------------------------------------------------+
 | Link Name          | Description                                            |
 +====================+========================================================+
@@ -538,6 +544,8 @@ separated by ``=`` (equals signs)::
 +--------------------+--------------------------------------------------------+
 | ``"a"`` / ``"b"``  | Anchor for the joiner at the front side of the shape.  |
 +--------------------+--------------------------------------------------------+
+
+You can have multiple subtables, separated by a line with only three dashes: ``---``::
 
     // DefineHeader(Table:^Pos Arg|What it Does||^Names Arg|What it Does): Args
     // Args:
@@ -548,6 +556,7 @@ separated by ``=`` (equals signs)::
     //   qux = The baz argument.
 
 **Args:**
+
 +-------------+--------------------------------------------------------+
 | Pos Arg     | What it Does                                           |
 +=============+========================================================+
