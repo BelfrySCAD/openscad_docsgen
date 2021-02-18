@@ -228,7 +228,6 @@ class TableBlock(GenericBlock):
             tables.append(table)
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
-        out.append("")
         for table in tables:
             out.extend(table)
             out.append("")
