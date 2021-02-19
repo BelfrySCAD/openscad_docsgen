@@ -54,6 +54,7 @@ class ImageManager(object):
     _vpt_re = re.compile(r'VPT=\[([^]]+)\]')
     _vpr_re = re.compile(r'VPR=\[([^]]+)\]')
     _vpd_re = re.compile(r'VPD=([0-9]+)')
+    _framems_re = re.compile(r'FrameMS=([0-9]+)')
 
     def __init__(self):
         self.requests = []
@@ -142,16 +143,25 @@ class ImageManager(object):
             if "$vp" in line:
                 no_vp = False
 
+        frame_ms = 250
+        match = self._vpd_re.search(req.image_meta)
+        if match:
+            frame_ms = int(match.group(1))
+
         osc = OpenScadRunner(
             script_file,
             new_img_file,
             animate=36 if (("Spin" in req.image_meta or "Anim" in req.image_meta) and not self.test_only) else None,
+            animate_duration=frame_ms,
             imgsize=imgsize, antialias=2,
             orthographic=True,
             camera=camera,
-            auto_center=no_vp, view_all=no_vp,
+            auto_center=no_vp,
+            view_all=no_vp,
             show_edges="Edges" in req.image_meta,
+            show_axes="NoAxes" not in req.image_meta,
             render_mode=render_mode,
+            hard_warnings=no_vp
         )
         osc.run()
 
