@@ -418,14 +418,13 @@ class ImageBlock(GenericBlock):
             out += line + "\n"
         for line in req.errors:
             out += line + "\n"
-        out += "//////////////////////////////////////////////////////////////////////\n"
-        out += "// LibFile: {}  Line: {}  Image: {}\n".format(
+        out += "LibFile: {}  Line: {}  Image: {}\n".format(
             req.src_file, req.src_line, os.path.basename(req.image_file)
         )
-        out += "//////////////////////////////////////////////////////////////////////\n"
+        out += "------------------------------------------------------------------------------\n"
         for line in req.script_lines:
             out += line + "\n"
-        out += "//////////////////////////////////////////////////////////////////////\n"
+        out += "------------------------------------------------------------------------------\n"
         print(out, file=sys.stderr)
         sys.exit(-1)
 
