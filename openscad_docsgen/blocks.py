@@ -437,13 +437,8 @@ class ImageBlock(GenericBlock):
             return out
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         out.append("")
-        if "Figure" not in self.title:
-            out.extend(["    " + line for line in fileblock.includes])
-            out.extend(["    " + line for line in self.body if not line.strip().startswith("--")])
-            out.append("")
         if "NORENDER" not in self.meta and self.image_url:
             out.append(
-                #"![{0} {1}{2}]({3})"
                 '<img align="left" alt="{0} {1}{2}" src="{3}">'
                 .format(
                     mkdn_esc(self.parent.subtitle),
@@ -452,6 +447,12 @@ class ImageBlock(GenericBlock):
                     self.image_url
                 )
             )
+            out.append("")
+        if "Figure" not in self.title:
+            out.extend(["    " + line for line in fileblock.includes])
+            out.extend(["    " + line for line in self.body if not line.strip().startswith("--")])
+            out.append("")
+            out.append('<br clear="all" />')
             out.append("")
         return out
 
