@@ -7,7 +7,7 @@ code comments.  This is similar to Doxygen or JavaDoc, but designed for use with
 Example images can be generated automatically from short example scripts.
 
 Documentation about how to add documentation comments to OpenSCAD code can be found at
-`https://github.com/revarbat/openscad_docsgen/blob/main/WRITING_DOCS.rst`
+`https://github.com/revarbat/openscad_docsgen/blob/main/WRITING_DOCS.md`
 
 
 Using openscad-docsgen
