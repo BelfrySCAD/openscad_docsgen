@@ -53,7 +53,7 @@ def block_link(item, srcfile="", prefix="", shorthand=False):
     return "{}[{}]({}#{})".format(
         prefix,
         mkdn_esc(item.subtitle if shorthand else str(item)),
-        (srcfile + ".md") if srcfile else "",
+        srcfile,
         header_link(str(item))
     )
 
@@ -852,7 +852,7 @@ class DocsGenParser(object):
                         continue
                     if item.title != "Constant":
                         continue
-                    consts.append("[`{0}`]({1}.md#{2})".format(
+                    consts.append("[`{0}`]({1}#{2})".format(
                         item.subtitle,
                         file_block.src_file,
                         header_link(str(item))
@@ -864,7 +864,7 @@ class DocsGenParser(object):
                     if item.title == "Constant":
                         continue
                     item_name = re.sub(r'[^A-Za-z0-9_$]', r'', item.subtitle)
-                    link = "[{0}]({1}.md#{2})".format(
+                    link = "[{0}]({1}#{2})".format(
                         item_name,
                         file_block.src_file,
                         header_link(str(item))
