@@ -876,7 +876,7 @@ class DocsGenParser(object):
                     ]
                     for usage in usages:
                         for line in usage.body:
-                            lines.append("> <code>{}</code>".format(mkdn_esc(line.replace(item_name,link))))
+                            lines.append("<code>{}</code>  ".format(mkdn_esc(line.replace(item_name,link))))
                     if lines:
                         lines.append("")
 
