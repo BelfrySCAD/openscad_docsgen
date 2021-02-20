@@ -70,4 +70,4 @@ directory you will be running openscad-docsgen from.  It can look something like
     DefineHeader(BulletList): Side Effects
     DefineHeader(Table:Anchor&nbsp;Name|Position): Extra Anchors
 
-See [WRITING_DOCS](WRITING_DOCS.md) for an explanation of the syntax.
+See `WRITING_DOCS.md` for an explanation of the syntax.
