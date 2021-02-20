@@ -773,12 +773,12 @@ class DocsGenParser(object):
             for sect in fblock.children:
                 if isinstance(sect,SectionBlock):
                     snum += 1
-                    out.append(block_link(sect, srcfile=filename, prefix="    {}.{}. ".format(fnum,snum)))
+                    out.append(block_link(sect, srcfile=filename, prefix="    {}. ".format(snum)))
                     inum = 0
                     for item in sect.children:
                         if isinstance(item,ItemBlock):
                             inum += 1
-                            out.append(block_link(item, srcfile=filename, prefix="        {}.{}.{}. ".format(fnum,snum,inum)))
+                            out.append(block_link(item, srcfile=filename, prefix="        - "))
         outfile = os.path.join(self.docs_dir, "TOC.md")
         print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
