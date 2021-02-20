@@ -439,11 +439,10 @@ class ImageBlock(GenericBlock):
         out.append("")
         if "NORENDER" not in self.meta and self.image_url:
             out.append(
-                '<img align="left" alt="{0} {1}{2}" src="{3}">'
+                '<img align="left" alt="{0} {1}" src="{2}">'
                 .format(
                     mkdn_esc(self.parent.subtitle),
                     mkdn_esc(self.title),
-                    (" %d" % self.image_num) if self.parent.example_num > 1 else "",
                     self.image_url
                 )
             )

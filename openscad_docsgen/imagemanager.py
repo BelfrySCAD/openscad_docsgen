@@ -144,7 +144,7 @@ class ImageManager(object):
                 no_vp = False
 
         frame_ms = 250
-        match = self._vpd_re.search(req.image_meta)
+        match = self._framems_re.search(req.image_meta)
         if match:
             frame_ms = int(match.group(1))
 
