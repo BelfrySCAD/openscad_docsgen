@@ -171,7 +171,7 @@ class ImageManager(object):
             if "$vp" in line:
                 no_vp = False
 
-        render_mode = req.render_mods
+        render_mode = req.render_mode
         animate = req.animation_frames
         if self.test_only:
             render_mode = RenderMode.test_only
