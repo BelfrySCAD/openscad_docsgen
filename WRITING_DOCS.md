@@ -452,6 +452,7 @@ metadata directives:
 - `Spin`: Animate camera orbit around the `[0,1,1]` axis to display all sides of an object.
 - `FlatSpin`: Animate camera orbit around the Z axis, above the XY plane.
 - `Anim`: Make an animation where `$t` varies from `0.0` to almost `1.0`.
+- `Frames=36`: Number of animation frames to make.
 - `FrameMS=250`: Sets the number of milliseconds per frame for spins and animation.
 - `Small`: Make the image small sized.
 - `Med`: Make the image medium sized.
@@ -461,6 +462,7 @@ metadata directives:
 - `Render`: Force full rendering from OpenSCAD, instead of the normal preview.
 - `Edges`: Highlight face edges.
 - `NoAxes`: Hides the axes and scales.
+- `ScriptUnder`: Display script text under image, rather than beside it.
 
 
 Example Block
@@ -531,6 +533,7 @@ metadata directives:
 - `FlatSpin`: Animate camera orbit around the Z axis, above the XY plane.
 - `Anim`: Make an animation where `$t` varies from `0.0` to almost `1.0`.
 - `FrameMS=250`: Sets the number of milliseconds per frame for spins and animation.
+- `Frames=36`: Number of animation frames to make.
 - `Small`: Make the image small sized.
 - `Med`: Make the image medium sized.
 - `Big`: Make the image big sized.
@@ -539,6 +542,7 @@ metadata directives:
 - `Render`: Force full rendering from OpenSCAD, instead of the normal preview.
 - `Edges`: Highlight face edges.
 - `NoAxes`: Hides the axes and scales.
+- `ScriptUnder`: Display script text under image, rather than beside it.
 
 Modules will default to generating and displaying the image as if the `3D`
 directive is given.  Functions and constants will default to not generating

@@ -15,14 +15,95 @@ from openscad_runner import RenderMode, OpenScadRunner
 
 
 class ImageRequest(object):
+    _size_re = re.compile(r'Size=([0-9]+)x([0-9]+)')
+    _frames_re = re.compile(r'Frames=([0-9]+)')
+    _framems_re = re.compile(r'FrameMS=([0-9]+)')
+    _fps_re = re.compile(r'FPS=([0-9]+)')
+    _vpt_re = re.compile(r'VPT=\[([^]]+)\]')
+    _vpr_re = re.compile(r'VPR=\[([^]]+)\]')
+    _vpd_re = re.compile(r'VPD=([0-9]+)')
+
     def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None):
         self.src_file = src_file
         self.src_line = src_line
         self.image_file = image_file
-        self.script_lines = script_lines
         self.image_meta = image_meta
+        self.script_lines = script_lines
         self.completion_cb = completion_cb
         self.starting_cb = starting_cb
+
+        self.render_mode = RenderMode.preview
+        self.imgsize = (320, 240)
+        self.camera = None
+        self.animation_frames = None
+        self.frame_ms = 250
+        self.show_edges = "Edges" in image_meta,
+        self.show_axes = "NoAxes" not in image_meta,
+        self.orthographic = "Perspective" not in image_meta
+        self.script_under = False
+
+        if "Render" in image_meta:
+            self.render_mode = RenderMode.render
+
+        m = self._size_re.search(image_meta)
+        if m:
+            self.imgsize = (int(m.group(1)), int(m.group(2)))
+        elif "Small" in image_meta:
+            scale = 0.75
+        elif "Med" in image_meta:
+            scale = 1.5
+        elif "Big" in image_meta:
+            scale = 2.0
+        elif "Huge" in image_meta:
+            scale = 2.5
+        else:
+            scale = 1.0
+        self.imgsize = [scale*x for x in self.imgsize]
+
+        if "FlatSpin" in image_meta:
+            self.script_lines.insert(0, "$vpr = [55, 0, 360*$t];")
+        elif "Spin" in image_meta:
+            match = self._vpr_re.search(image_meta)
+            if match:
+                self.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
+            else:
+                self.script_lines.insert(0, "$vpr = [90-45*cos(360*$t), 0, 360*$t];")
+        elif "3D" in image_meta:
+            self.camera = [0,0,0,55,0,25,444]
+        elif "2D" in image_meta:
+            self.camera = [0,0,0,0,0,0,444]
+        else:
+            match = self._vpr_re.search(image_meta)
+            if match:
+                self.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
+            else:
+                self.camera = [0,0,0,55,0,25,444]
+
+        match = self._vpt_re.search(image_meta)
+        if match:
+            self.script_lines.insert(0, "$vpt = [{}];".format(match.group(1)))
+
+        match = self._vpd_re.search(image_meta)
+        if match:
+            self.script_lines.insert(0, "$vpd = {};".format(match.group(1)))
+
+        match = self._fps_re.search(image_meta)
+        if match:
+            self.frame_ms = int(1000/match.group(1))
+        match = self._framems_re.search(image_meta)
+        if match:
+            self.frame_ms = int(match.group(1))
+
+        if "Spin" in image_meta or "Anim" in image_meta:
+            self.animation_frames = 36
+        match = self._frames_re.search(image_meta)
+        if match:
+            self.animation_frames = int(match.group(1))
+
+        longest = max(len(line) for line in self.script_lines)
+        maxlen = (880 - self.imgsize[0]) / 9
+        if longest > maxlen or "ScriptUnder" in image_meta:
+            self.script_under = True
 
         self.complete = False
         self.status = "INCOMPLETE"
@@ -50,11 +131,6 @@ class ImageRequest(object):
 
 
 class ImageManager(object):
-    _size_re = re.compile(r'Size=([0-9]+)x([0-9]+)')
-    _vpt_re = re.compile(r'VPT=\[([^]]+)\]')
-    _vpr_re = re.compile(r'VPR=\[([^]]+)\]')
-    _vpd_re = re.compile(r'VPD=([0-9]+)')
-    _framems_re = re.compile(r'FrameMS=([0-9]+)')
 
     def __init__(self):
         self.requests = []
@@ -68,6 +144,7 @@ class ImageManager(object):
             raise Exception("Cannot render scripts marked NORENDER")
         req = ImageRequest(src_file, src_line, image_file, script_lines, image_meta, starting_cb, completion_cb)
         self.requests.append(req)
+        return req
 
     def process_requests(self, test_only=False):
         self.test_only = test_only
@@ -85,81 +162,34 @@ class ImageManager(object):
         targ_img_file = req.image_file
         new_img_file = "tmp_{0}{1}".format(file_base, file_ext)
 
-        camera = None
-        if "FlatSpin" in req.image_meta:
-            req.script_lines.insert(0, "$vpr = [55, 0, 360*$t];")
-        elif "Spin" in req.image_meta:
-            match = self._vpr_re.search(req.image_meta)
-            if match:
-                req.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
-            else:
-                req.script_lines.insert(0, "$vpr = [90-45*cos(360*$t), 0, 360*$t];")
-        elif "3D" in req.image_meta:
-            camera = [0,0,0,55,0,25,444]
-        elif "2D" in req.image_meta:
-            camera = [0,0,0,0,0,0,444]
-        else:
-            match = self._vpr_re.search(req.image_meta)
-            if match:
-                req.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
-            else:
-                camera = [0,0,0,55,0,25,444]
-
-        match = self._vpt_re.search(req.image_meta)
-        if match:
-            req.script_lines.insert(0, "$vpt = [{}];".format(match.group(1)))
-
-        match = self._vpd_re.search(req.image_meta)
-        if match:
-            req.script_lines.insert(0, "$vpd = {};".format(match.group(1)))
-
         with open(script_file, "w") as f:
             for line in req.script_lines:
                 f.write(line + "\n")
-
-        m = self._size_re.search(req.image_meta)
-        if m:
-            imgsize = (int(m.group(1)), int(m.group(2)))
-        else:
-            imgsize = (320, 240)
-
-        if "Small" in req.image_meta:
-            imgsize = [0.75*x for x in imgsize]
-        elif "Med" in req.image_meta:
-            imgsize = [1.5*x for x in imgsize]
-        elif "Big" in req.image_meta:
-            imgsize = [2.0*x for x in imgsize]
-        elif "Huge" in req.image_meta:
-            imgsize = [2.5*x for x in imgsize]
-
-        render_mode = RenderMode.preview
-        if self.test_only:
-            render_mode = RenderMode.test_only
-        elif "Render" in req.image_meta:
-            render_mode = RenderMode.render
 
         no_vp = True
         for line in req.script_lines:
             if "$vp" in line:
                 no_vp = False
 
-        frame_ms = 250
-        match = self._framems_re.search(req.image_meta)
-        if match:
-            frame_ms = int(match.group(1))
+        render_mode = req.render_mods
+        animate = req.animation_frames
+        if self.test_only:
+            render_mode = RenderMode.test_only
+            animate = None
 
         osc = OpenScadRunner(
             script_file,
             new_img_file,
-            animate=36 if (("Spin" in req.image_meta or "Anim" in req.image_meta) and not self.test_only) else None,
-            animate_duration=frame_ms,
-            imgsize=imgsize, antialias=2,
+            animate=animate,
+            animate_duration=req.frame_ms,
+            imgsize=req.imgsize,
+            antialias=2,
             orthographic=True,
-            camera=camera,
+            camera=req.camera,
             auto_center=no_vp,
             view_all=no_vp,
-            show_edges="Edges" in req.image_meta,
-            show_axes="NoAxes" not in req.image_meta,
+            show_edges=req.show_edges,
+            show_axes=req.show_axes,
             render_mode=render_mode,
             hard_warnings=no_vp
         )

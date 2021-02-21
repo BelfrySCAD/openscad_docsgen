@@ -359,6 +359,7 @@ class ImageBlock(GenericBlock):
         self.image_url = None
         self.docs_dir = docs_dir
         self.line_num = line_num
+        self.image_req = None
         if not "NORENDER" in meta:
             fileblock = self.parent
             while fileblock.parent:
@@ -391,7 +392,7 @@ class ImageBlock(GenericBlock):
                     else:
                         script_lines.append(line)
                 full_image_path = os.path.join(self.docs_dir, self.image_url)
-                imgmgr.new_request(
+                self.image_req = imgmgr.new_request(
                     fileblock.src_file, line_num+1,
                     full_image_path,
                     script_lines, meta,
@@ -448,11 +449,15 @@ class ImageBlock(GenericBlock):
             )
             out.append("")
         if "Figure" not in self.title:
+            if self.image_req and self.image_req.script_under:
+                out.append('<br clear="all" />')
+                out.append("")
             out.extend(["    " + line for line in fileblock.includes])
             out.extend(["    " + line for line in self.body if not line.strip().startswith("--")])
             out.append("")
-            out.append('<br clear="all" />')
-            out.append("")
+            if not self.image_req or not self.image_req.script_under:
+                out.append('<br clear="all" />')
+                out.append("")
         return out
 
 

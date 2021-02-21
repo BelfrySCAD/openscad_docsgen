@@ -57,7 +57,7 @@ def processFiles(
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='docs_gen')
+    parser = argparse.ArgumentParser(prog='openscad-docsgen')
     parser.add_argument('-D', '--docs-dir', default="docs",
                         help='The directory to put generated documentation in.')
     parser.add_argument('-T', '--test-only', action="store_true",
