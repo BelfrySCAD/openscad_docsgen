@@ -37,8 +37,8 @@ class ImageRequest(object):
         self.camera = None
         self.animation_frames = None
         self.frame_ms = 250
-        self.show_edges = "Edges" in image_meta,
-        self.show_axes = "NoAxes" not in image_meta,
+        self.show_edges = "Edges" in image_meta
+        self.show_axes = "NoAxes" not in image_meta
         self.orthographic = "Perspective" not in image_meta
         self.script_under = False
 
@@ -177,6 +177,8 @@ class ImageManager(object):
             render_mode = RenderMode.test_only
             animate = None
 
+        print("show_edges={}".format(req.show_edges))
+
         osc = OpenScadRunner(
             script_file,
             new_img_file,
@@ -191,7 +193,8 @@ class ImageManager(object):
             show_edges=req.show_edges,
             show_axes=req.show_axes,
             render_mode=render_mode,
-            hard_warnings=no_vp
+            hard_warnings=no_vp,
+            verbose=True
         )
         osc.run()
 
