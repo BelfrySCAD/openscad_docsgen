@@ -177,8 +177,6 @@ class ImageManager(object):
             render_mode = RenderMode.test_only
             animate = None
 
-        print("show_edges={}".format(req.show_edges))
-
         osc = OpenScadRunner(
             script_file,
             new_img_file,
@@ -193,8 +191,7 @@ class ImageManager(object):
             show_edges=req.show_edges,
             show_axes=req.show_axes,
             render_mode=render_mode,
-            hard_warnings=no_vp,
-            verbose=True
+            hard_warnings=no_vp
         )
         osc.run()
 

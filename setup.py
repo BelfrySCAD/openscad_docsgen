@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "1.0.11"
+VERSION = "1.0.12"
 
 
 with open('README.rst') as f:
