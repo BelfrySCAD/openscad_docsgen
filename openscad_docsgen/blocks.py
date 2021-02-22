@@ -84,18 +84,19 @@ class GenericBlock(object):
 
     def sort_children(self, front_blocks=(), back_blocks=()):
         children = []
-        for blocks in front_blocks:
-            for child in self.children:
-                if child.title in blocks:
-                    children.append(child)
+        for child in self.children:
+            found = [block for blocks in front_blocks for block in blocks if block in child.title]
+            if found:
+                children.append(child)
         blocks = flatten(front_blocks + back_blocks)
         for child in self.children:
-            if child.title not in blocks:
+            found = [block for block in blocks if block in child.title]
+            if not found:
                 children.append(child)
-        for blocks in back_blocks:
-            for child in self.children:
-                if child.title in blocks:
-                    children.append(child)
+        for child in self.children:
+            found = [block for blocks in back_blocks for block in blocks if block in child.title]
+            if found:
+                children.append(child)
         return children
 
     def get_toc_lines(self):
@@ -360,45 +361,59 @@ class ImageBlock(GenericBlock):
         self.docs_dir = docs_dir
         self.line_num = line_num
         self.image_req = None
-        if not "NORENDER" in meta:
-            fileblock = self.parent
-            while fileblock.parent:
-                fileblock = fileblock.parent
-            gentypes = ["File", "LibFile", "Module", "Function&Module"]
-            if parent.title in gentypes or "3D" in meta or "2D" in meta or "Spin" in meta or "Anim" in meta:
-                file_ext = "gif" if "Spin" in meta or "Anim" in meta else "png"
-                file_base = os.path.splitext(fileblock.subtitle.strip())[0]
-                san_name = re.sub(r'[^A-Za-z0-9_]', r'', os.path.basename(parent.subtitle.strip()))
-                if title == "Figure":
-                    parent.figure_num += 1
-                    self.image_num = parent.figure_num
-                    if parent.title in ["File", "LibFile"]:
-                        image_url = "figure{}.{}".format(self.image_num, file_ext)
-                    else:
-                        image_url = "{}_fig{}.{}".format(san_name, self.image_num, file_ext)
-                else:
-                    parent.example_num += 1
-                    self.image_num = parent.example_num
-                    img_suffix = "_{}".format(self.image_num) if self.image_num > 1 else ""
-                    image_url = "{}{}.{}".format(san_name, img_suffix, file_ext)
-                self.image_url = os.path.join("images", file_base, image_url)
-                self.title = "{} {}".format(self.title, self.image_num)
-                script_lines = []
-                script_lines.extend(fileblock.includes)
-                script_lines.extend(fileblock.common_code)
-                for line in body:
-                    if line.strip().startswith("--"):
-                        script_lines.append(line.strip()[2:])
-                    else:
-                        script_lines.append(line)
-                full_image_path = os.path.join(self.docs_dir, self.image_url)
-                self.image_req = imgmgr.new_request(
-                    fileblock.src_file, line_num+1,
-                    full_image_path,
-                    script_lines, meta,
-                    starting_cb=self._img_proc_start,
-                    completion_cb=self._img_proc_done
-                )
+
+        fileblock = self.parent
+        while fileblock.parent:
+            fileblock = fileblock.parent
+        san_name = re.sub(r'[^A-Za-z0-9_]', r'', os.path.basename(parent.subtitle.strip()))
+        file_ext = "gif" if "Spin" in meta or "Anim" in meta else "png"
+
+        if parent is None:
+            proposed_name = "{}.{}".format(san_name, file_ext)
+        elif title == "Figure":
+            parent.figure_num += 1
+            self.image_num = parent.figure_num
+            if parent.title in ["File", "LibFile"]:
+                proposed_name = "figure{}.{}".format(self.image_num, file_ext)
+            else:
+                proposed_name = "{}_fig{}.{}".format(san_name, self.image_num, file_ext)
+            self.title = "{} {}".format(self.title, self.image_num)
+        else:
+            parent.example_num += 1
+            self.image_num = parent.example_num
+            img_suffix = "_{}".format(self.image_num) if self.image_num > 1 else ""
+            proposed_name = "{}{}.{}".format(san_name, img_suffix, file_ext)
+            self.title = "{} {}".format(self.title, self.image_num)
+
+        if "NORENDER" in meta:
+            return
+
+        if (
+            parent.title not in ["File", "LibFile", "Module", "Function&Module"]
+            and "3D" not in meta
+            and "2D" not in meta
+            and "Spin" not in meta
+            and "Anim" not in meta
+        ):
+            return
+
+        file_base = os.path.splitext(fileblock.subtitle.strip())[0]
+        self.image_url = os.path.join("images", file_base, proposed_name)
+        script_lines = []
+        script_lines.extend(fileblock.includes)
+        script_lines.extend(fileblock.common_code)
+        for line in body:
+            if line.strip().startswith("--"):
+                script_lines.append(line.strip()[2:])
+            else:
+                script_lines.append(line)
+        self.image_req = imgmgr.new_request(
+            fileblock.src_file, line_num+1,
+            os.path.join(self.docs_dir, self.image_url),
+            script_lines, meta,
+            starting_cb=self._img_proc_start,
+            completion_cb=self._img_proc_done
+        )
 
     def _img_proc_start(self, req):
         print("  {}... ".format(os.path.basename(self.image_url)), end='')
@@ -619,11 +634,20 @@ class DocsGenParser(object):
         body = []
         line_num += 1
 
+        first_line = True
+        indent = 2
         while line_num < len(lines):
             line = lines[line_num]
-            if not line.startswith("//   "):
+            if not line.startswith("//" + (" " * indent)):
+                if line.startswith("//  "):
+                    raise DocsGenException(title, "Body line has less indentation than first line, while declaring block:")
                 break
-            body.append(line[5:].rstrip())
+            line = line[2:]
+            if first_line:
+                first_line = False
+                indent = len(line) - len(line.lstrip())
+            line = line[indent:]
+            body.append(line.rstrip())
             line_num += 1
 
         try:
