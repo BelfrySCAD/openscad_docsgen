@@ -156,6 +156,7 @@ class BulletListBlock(GenericBlock):
     def get_markdown(self):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
+        out.append("")
         for line in self.body:
             out.append("- {}".format(mkdn_esc(line)))
         out.append("")
@@ -169,8 +170,9 @@ class NumberedListBlock(GenericBlock):
     def get_markdown(self):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
+        out.append("")
         for i, line in enumerate(self.body):
-            out.append("{}. {}".format(i, mkdn_esc(line)))
+            out.append("{}. {}".format(i+1, mkdn_esc(line)))
         out.append("")
         return out
 
