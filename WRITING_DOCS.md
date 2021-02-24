@@ -308,13 +308,28 @@ Which outputs Markdown code that renders like:
 >GENERATED IMAGE SHOWN HERE
 
 These Type blocks can have a number of sub-blocks.  Most sub-blocks are optional,  The available standard sub-blocks are:
+- `// Aliases: alternatename(), anothername()`
 - `// Status: DEPRECATED`
 - `// Topics: Comma, Delimited, Topic, List`
 - `// Usage:`
 - `// Description:`
 - `// Arguments:`
 - `// Figure:` or `// Figures`
+- `// See Also: otherfunc(), othermod(), OTHERCONST`
 - `// Example:` or `// Examples:`
+
+
+Aliases Block
+-------------
+
+The Aliases block is used to give alternate names for a function, module, or
+constant.  This is reflected in the indexes generated.  It looks like:
+
+    // Aliases: secondname(), thirdname()
+
+Which outputs Markdown code that renders like:
+
+>**Aliases:** secondname(), thirdname()
 
 
 Status Block
@@ -379,6 +394,7 @@ Which outputs Markdown code that renders like:
 >which will traslate to `\_`, so that underscores in function/module
 >names don't get butchered.
 
+
 Arguments Block
 ---------------
 The Arguments block creates a table that describes the positional arguments for a function or module, and optionally a second table that describes named arguments:
@@ -403,7 +419,19 @@ Which outputs Markdown code that renders like:
 >`fast`         | If true, use fast, but less accurate calculation method. 
 >`dflt`         | Default value.
 
----
+
+See Also Block
+--------------
+
+The See Also block is used to give links to related functions, modules, or
+constants.  It looks like:
+
+    // See Also: relatedfunc(), similarmodule()
+
+Which outputs Markdown code that renders like:
+
+>**See Also:** [relatedfunc()](otherfile.scad#relatedfunc), [similarmodule()](otherfile.scad#similarmodule)
+
 
 Figure Block
 --------------

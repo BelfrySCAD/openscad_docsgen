@@ -7,8 +7,7 @@ import os
 import os.path
 import argparse
 
-from .blocks import DocsGenParser
-
+from .blocks import DocsGenParser, DocsGenException 
 
 def processFiles(
     files, docs_dir,
@@ -18,6 +17,7 @@ def processFiles(
     gen_md=False,
     gen_toc=False,
     gen_index=False,
+    gen_topics=False,
     gen_cheat=False,
     dump_tree=False
 ):
@@ -50,6 +50,8 @@ def processFiles(
         docsgen.write_toc_file()
     if gen_index:
         docsgen.write_index_file()
+    if gen_topics:
+        docsgen.write_topics_file()
     if gen_index:
         docsgen.write_cheatsheet_file()
     if dump_tree:
@@ -70,8 +72,10 @@ def main():
                         help='If given, generate markdown documents for each file.')
     parser.add_argument('-i', '--gen-index', action="store_true",
                         help='If given, generate alphabetical Index.md file.')
+    parser.add_argument('-I', '--gen-topics', action="store_true",
+                        help='If given, generate Topics.md topics index file.')
     parser.add_argument('-t', '--gen-toc', action="store_true",
-                        help='If given, generate table of contents TOC.md file.')
+                        help='If given, generate TOC.md table of contents file.')
     parser.add_argument('-c', '--gen-cheat', action="store_true",
                         help='If given, generate CheatSheet.md file with all Usage lines.')
     parser.add_argument('-d', '--dump-tree', action="store_true",
@@ -89,9 +93,14 @@ def main():
             gen_md=args.gen_md,
             gen_toc=args.gen_toc,
             gen_index=args.gen_index,
+            gen_topics=args.gen_topics,
             gen_cheat=args.gen_cheat,
             dump_tree=args.dump_tree
         )
+
+    except DocsGenException as e:
+        print(e)
+        sys.exit(-1)
 
     except OSError as e:
         print(e)

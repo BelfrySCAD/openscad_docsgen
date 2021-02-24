@@ -7,6 +7,7 @@ import sys
 import glob
 import string
 import hashlib
+from collections import namedtuple
 
 from .imagemanager import ImageRequest, ImageManager
 
@@ -18,13 +19,14 @@ def mkdn_esc(txt):
     quotpat = re.compile(r'([^`]*)(`[^`]*`)(.*$)')
     while txt:
         m = quotpat.match(txt)
-        if m:
-            out += m.group(1).replace(r'_', r'\_').replace(r'&',r'&amp;').replace(r'<', r'&lt;').replace(r'>',r'&gt;')
-            out += m.group(2)
-            txt = m.group(3)
-        else:
-            out += txt.replace(r'_', r'\_').replace(r'&',r'&amp;').replace(r'<', r'&lt;').replace(r'>',r'&gt;')
-            txt = ""
+        unquot  = m.group(1) if m else txt
+        literal = m.group(2) if m else ""
+        txt     = m.group(3) if m else ""
+        unquot = unquot.replace(r'_', r'\_')
+        unquot = unquot.replace(r'&',r'&amp;')
+        unquot = unquot.replace(r'<', r'&lt;')
+        unquot = unquot.replace(r'>',r'&gt;')
+        out += unquot + literal
     return out
 
 
@@ -49,13 +51,7 @@ def header_link(name):
     return refpat.sub("", name.lower()).replace(" ", "-")
 
 
-def block_link(item, srcfile="", prefix="", shorthand=False):
-    return "{}[{}]({}#{})".format(
-        prefix,
-        mkdn_esc(item.subtitle if shorthand else str(item)),
-        srcfile,
-        header_link(str(item))
-    )
+OriginInfo = namedtuple('OriginInfo', 'file line')
 
 
 class DocsGenException(Exception):
@@ -66,10 +62,13 @@ class DocsGenException(Exception):
 
 
 class GenericBlock(object):
-    def __init__(self, title, subtitle, body, parent=None):
+    _linkpat = re.compile(r'^(.*)\{\{([A-Za-z0-9_()]+)\}\}(.*)$')
+
+    def __init__(self, title, subtitle, body, origin, parent=None):
         self.title = title
         self.subtitle = subtitle
         self.body = body
+        self.origin = origin
         self.parent = parent
         self.children = []
         self.figure_num = 0
@@ -99,10 +98,22 @@ class GenericBlock(object):
                 children.append(child)
         return children
 
+    def get_link(self, label=None, currfile="", literalize=True):
+        label = label if label is not None else self.subtitle
+        if literalize:
+            label = "`{0}`".format(label)
+        else:
+            label = mkdn_esc(label)
+        return "[{0}]({1}#{2})".format(
+            label,
+            self.origin.file if self.origin.file != currfile else "",
+            header_link(str(self))
+        )
+
     def get_toc_lines(self):
         return []
 
-    def get_markdown_body(self):
+    def get_markdown_body(self, controller):
         out = []
         if not self.body:
             return out
@@ -115,13 +126,27 @@ class GenericBlock(object):
             elif line == ".":
                 out.append("")
             else:
-                out.append(mkdn_esc(line))
+                oline = ""
+                while line:
+                    m = self._linkpat.match(line)
+                    if m:
+                        oline += m.group(1)
+                        name = m.group(2)
+                        line = m.group(3)
+                        if name not in controller.items_by_name:
+                            raise DocsGenException("Invalid Link {{{{{0}}}}} in file {1}, line {2}".format(name, self.origin.file, self.origin.line))
+                        item, parent = self.items_by_name[name]
+                        oline += item.get_link(label=name, currfile=self.origin.file)
+                    else:
+                        oline += line
+                        line = ""
+                out.append(mkdn_esc(oline))
         return out
 
-    def get_markdown(self):
+    def get_markdown(self, controller):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
-        out.extend(self.get_markdown_body())
+        out.extend(self.get_markdown_body(controller))
         out.append("")
         return out
 
@@ -135,28 +160,45 @@ class GenericBlock(object):
 
 
 class LabelBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, parent=None):
+    def __init__(self, title, subtitle, body, origin, parent=None):
         if body:
             raise DocsGenException(title, "Body not supported, while declaring block:")
-        super().__init__(title, subtitle, body, parent=parent)
+        super().__init__(title, subtitle, body, origin, parent=parent)
+
+
+class SeeAlsoBlock(LabelBlock):
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        super().__init__(title, subtitle, body, origin, parent=parent)
+
+    def get_markdown(self, controller):
+        names = [name.strip() for name in self.subtitle.split(",")]
+        items = []
+        for name in names:
+            if name in controller.items_by_name:
+                raise DocsGenException(title, "Invalid Link '{}', while declaring block:".format(name))
+            items.append( controller.items_by_name[name] )
+        links = ", ".join( item.get_link(currfile=self.origin.file) for item in items )
+        out = []
+        out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(links)))
+        out.append("")
+        return out
 
 
 class TextBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, parent=None):
+    def __init__(self, title, subtitle, body, origin, parent=None):
         if subtitle:
             body.insert(0, subtitle)
             subtitle = ""
-        super().__init__(title, subtitle, body, parent=parent)
+        super().__init__(title, subtitle, body, origin, parent=parent)
 
 
 class BulletListBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, parent=None):
-        super().__init__(title, subtitle, body, parent=parent)
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        super().__init__(title, subtitle, body, origin, parent=parent)
 
-    def get_markdown(self):
+    def get_markdown(self, controller):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
-        out.append("")
         for line in self.body:
             out.append("- {}".format(mkdn_esc(line)))
         out.append("")
@@ -164,10 +206,10 @@ class BulletListBlock(GenericBlock):
 
 
 class NumberedListBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, parent=None):
-        super().__init__(title, subtitle, body, parent=parent)
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        super().__init__(title, subtitle, body, origin, parent=parent)
 
-    def get_markdown(self):
+    def get_markdown(self, controller):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         out.append("")
@@ -178,8 +220,8 @@ class NumberedListBlock(GenericBlock):
 
 
 class TableBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, parent=None, header_sets=None):
-        super().__init__(title, subtitle, body, parent=parent)
+    def __init__(self, title, subtitle, body, origin, parent=None, header_sets=None):
+        super().__init__(title, subtitle, body, origin, parent=parent)
         self.header_sets = header_sets
         tnum = 0
         for line in self.body:
@@ -189,7 +231,7 @@ class TableBlock(GenericBlock):
         if tnum >= len(self.header_sets):
             raise DocsGenException(title, "More tables than header_sets, while declaring block:")
 
-    def get_markdown(self):
+    def get_markdown(self, controller):
         prev_tnum = -1
         tnum = 0
         table = []
@@ -238,49 +280,63 @@ class TableBlock(GenericBlock):
 
 
 class FileBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, src_file=None):
-        super().__init__(title, subtitle, body)
+    def __init__(self, title, subtitle, body, origin):
+        super().__init__(title, subtitle, body, origin)
         self.includes = []
         self.common_code = []
-        self.src_file = src_file
+
+    def get_link(self, label=None, currfile="", literalize=False):
+        label = label if label is not None else self.subtitle
+        if literalize:
+            label = "`{0}`".format(label)
+        else:
+            label = mkdn_esc(label)
+        return "[{0}]({1})".format(label, self.origin.file)
 
     def get_toc_lines(self):
+        sections = [
+            sect for sect in self.children
+            if isinstance(sect, SectionBlock)
+        ]
         out = []
-        cnt = 0
         out.append("---")
         out.append("")
         out.append("# Table of Contents")
         out.append("")
-        for child in self.children:
-            if isinstance(child, SectionBlock):
-                cnt += 1
-                out.append(block_link(child, prefix="{}. ".format(cnt)))
-                out.extend(child.get_toc_lines())
-                out.append("")
+        for n, sect in enumerate(sections):
+            out.append("{0}. {1}".format(
+                n+1, sect.get_link(
+                    label=str(sect),
+                    currfile=self.origin.file,
+                    literalize=False
+                )
+            ))
+            out.extend(sect.get_toc_lines())
+            out.append("")
         return out
 
-    def get_markdown(self):
+    def get_markdown(self, controller):
         out = []
         out.append("# {}".format(mkdn_esc(str(self))))
-        out.extend(self.get_markdown_body())
+        out.extend(self.get_markdown_body(controller))
         out.append("")
         for child in self.children:
             if not isinstance(child, SectionBlock):
-                out.extend(child.get_markdown())
+                out.extend(child.get_markdown(controller))
         out.extend(self.get_toc_lines())
         for child in self.children:
             if isinstance(child, SectionBlock):
-                out.extend(child.get_markdown())
+                out.extend(child.get_markdown(controller))
         return out
 
 
 class IncludesBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, parent=None):
-        super().__init__(title, subtitle, body, parent=parent)
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        super().__init__(title, subtitle, body, origin, parent=parent)
         if parent:
             parent.includes.extend(body)
 
-    def get_markdown(self):
+    def get_markdown(self, controller):
         out = []
         if self.body:
             out.append("To use, add the following lines to the beginning of your file:")
@@ -292,26 +348,26 @@ class IncludesBlock(GenericBlock):
 
 
 class SectionBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, parent=None):
-        super().__init__(title, subtitle, body, parent=parent)
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        super().__init__(title, subtitle, body, origin, parent=parent)
 
     def get_toc_lines(self):
         out = []
         for child in self.children:
             if isinstance(child, ItemBlock):
-                out.append(block_link(child, prefix="    - "))
+                out.append("    - {}".format(child.get_link(currfile=self.origin.file)))
         return out
 
-    def get_markdown(self):
+    def get_markdown(self, controller):
         out = []
         out.append("---")
         out.append("")
         out.append("## {}".format(mkdn_esc(str(self))))
-        out.extend(self.get_markdown_body())
+        out.extend(self.get_markdown_body(controller))
         out.append("")
         cnt = 0
         for child in self.children:
-            chout = child.get_markdown()
+            chout = child.get_markdown(controller)
             if chout:
                 cnt += 1
             if cnt > 1:
@@ -324,12 +380,15 @@ class SectionBlock(GenericBlock):
 class ItemBlock(LabelBlock):
     _paren_pat = re.compile(r'\([^\)]+\)')
 
-    def __init__(self, title, subtitle, body, parent=None):
+    def __init__(self, title, subtitle, body, origin, parent=None):
         if self._paren_pat.search(subtitle):
             raise DocsGenException(title, "Text between parentheses, while declaring block:")
-        super().__init__(title, subtitle, body, parent=parent)
+        super().__init__(title, subtitle, body, origin, parent=parent)
         self.example_num = 0
         self.deprecated = False
+        self.topics = []
+        self.aliases = []
+        self.see_also = []
 
     def __str__(self):
         return "{}: {}".format(
@@ -337,8 +396,10 @@ class ItemBlock(LabelBlock):
             re.sub(r'\([^\)]*\)', r'()', self.subtitle)
         )
 
-    def get_markdown(self):
+    def get_markdown(self, controller):
         front_blocks = [
+            ["Alias"],
+            ["Aliases"],
             ["Status"],
             ["Topics"],
             ["Usage"]
@@ -350,18 +411,17 @@ class ItemBlock(LabelBlock):
         out.append("### {}".format(mkdn_esc(str(self))))
         out.append("")
         for child in self.sort_children(front_blocks, back_blocks):
-            out.extend(child.get_markdown())
+            out.extend(child.get_markdown(controller))
         return out
 
 
 class ImageBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, parent=None, meta="", docs_dir="", line_num=""):
-        super().__init__(title, subtitle, body, parent=parent)
+    def __init__(self, title, subtitle, body, origin, parent=None, meta="", docs_dir=""):
+        super().__init__(title, subtitle, body, origin, parent=parent)
         self.meta = meta
         self.image_num = 0
         self.image_url = None
         self.docs_dir = docs_dir
-        self.line_num = line_num
         self.image_req = None
 
         fileblock = self.parent
@@ -410,7 +470,7 @@ class ImageBlock(GenericBlock):
             else:
                 script_lines.append(line)
         self.image_req = imgmgr.new_request(
-            fileblock.src_file, line_num+1,
+            self.origin.file, self.origin.line,
             os.path.join(self.docs_dir, self.image_url),
             script_lines, meta,
             starting_cb=self._img_proc_start,
@@ -446,7 +506,7 @@ class ImageBlock(GenericBlock):
         print(out, file=sys.stderr)
         sys.exit(-1)
 
-    def get_markdown(self):
+    def get_markdown(self, controller):
         fileblock = self.parent
         while fileblock.parent:
             fileblock = fileblock.parent
@@ -479,13 +539,13 @@ class ImageBlock(GenericBlock):
 
 
 class FigureBlock(ImageBlock):
-    def __init__(self, title, subtitle, body, parent, meta="", docs_dir="", line_num=""):
-        super().__init__(title, subtitle, body, parent=parent, meta=meta, docs_dir=docs_dir, line_num=line_num)
+    def __init__(self, title, subtitle, body, origin, parent, meta="", docs_dir=""):
+        super().__init__(title, subtitle, body, origin, parent=parent, meta=meta, docs_dir=docs_dir)
 
 
 class ExampleBlock(ImageBlock):
-    def __init__(self, title, subtitle, body, parent, meta="", docs_dir="", line_num=""):
-        super().__init__(title, subtitle, body, parent=parent, meta=meta, docs_dir=docs_dir, line_num=line_num)
+    def __init__(self, title, subtitle, body, origin, parent, meta="", docs_dir=""):
+        super().__init__(title, subtitle, body, origin, parent=parent, meta=meta, docs_dir=docs_dir)
 
 
 class DocsGenParser(object):
@@ -503,6 +563,7 @@ class DocsGenParser(object):
         self.ignored_file_pats = []
         self.ignored_files = {}
         self.priority_files = []
+        self.items_by_name = {}
         self.reset_header_defs()
         self.read_hashes()
 
@@ -551,6 +612,8 @@ class DocsGenParser(object):
             #'Usage':         ( ItemBlock, BulletListBlock, None, None),
             'Status':        ( ItemBlock, LabelBlock, None, self._status_block_cb ),
             'Topics':        ( ItemBlock, LabelBlock, None, self._topics_block_cb ),
+            'Alias':         ( ItemBlock, LabelBlock, None, self._alias_block_cb ),
+            'Aliases':       ( ItemBlock, LabelBlock, None, self._alias_block_cb ),
             'Arguments':     ( ItemBlock, TableBlock, (
                                      ('^<abbr title="These args can be used by position or by name.">By&nbsp;Position</abbr>', 'What it does'),
                                      ('^<abbr title="These args must be used by name, ie: name=value">By&nbsp;Name</abbr>', 'What it does')
@@ -566,11 +629,14 @@ class DocsGenParser(object):
             lines = ["// " + line for line in f.readlines()]
             self.parse_lines(lines, src_file=self.RCFILE)
 
-    def _status_block_cb(self, title, subtitle, body, meta):
+    def _status_block_cb(self, title, subtitle, body, origin, meta):
         self.curr_item.deprecated = "DEPRECATED" in subtitle
 
-    def _topics_block_cb(self, title, subtitle, body, meta):
+    def _topics_block_cb(self, title, subtitle, body, origin, meta):
         self.curr_item.topics = [x.strip() for x in subtitle.split(",")]
+
+    def _alias_block_cb(self, title, subtitle, body, origin, meta):
+        self.curr_item.aliases = [x.strip() for x in subtitle.split(",")]
 
     def _skip_lines(self, lines, line_num=0):
         while line_num < len(lines):
@@ -654,10 +720,11 @@ class DocsGenParser(object):
 
         try:
             parent = self.curr_parent
+            origin = OriginInfo(src_file, hdr_line_num+1)
             if title == "DefineHeader":
                 self._define_blocktype(subtitle, meta)
             elif title == "IgnoreFiles":
-                if src_file != self.RCFILE:
+                if origin.file != self.RCFILE:
                     raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
                 if subtitle:
                     body.insert(0,subtitle)
@@ -670,13 +737,13 @@ class DocsGenParser(object):
                     for fname in files:
                         self.ignored_files[fname] = True
             elif title == "PrioritizeFiles":
-                if src_file != self.RCFILE:
+                if origin.file != self.RCFILE:
                     raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
                 if subtitle:
                     body.insert(0,subtitle)
                 self.priority_files = [x.strip() for x in body]
             elif title == "DocsDirectory":
-                if src_file != self.RCFILE:
+                if origin.file != self.RCFILE:
                     raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
                 if body:
                     raise DocsGenException(title, "Body not supported, while declaring block:")
@@ -686,47 +753,55 @@ class DocsGenParser(object):
             elif title in ["File", "LibFile"]:
                 if self.curr_file_block:
                     raise DocsGenException(title, "File/Libfile block already specified, while declaring block:")
-                self.curr_file_block = FileBlock(title, subtitle, body, src_file=src_file)
+                self.curr_file_block = FileBlock(title, subtitle, body, origin)
                 self.curr_parent = self.curr_file_block
                 self.file_blocks.append(self.curr_file_block)
             elif not self.curr_file_block:
                 raise DocsGenException(title, "Must declare File or LibFile block before declaring block:")
 
             elif title == "Section":
-                self.curr_section = SectionBlock(title, subtitle, body, parent=self.curr_file_block)
+                self.curr_section = SectionBlock(title, subtitle, body, origin, parent=self.curr_file_block)
                 self.curr_parent = self.curr_section
             elif title == "Includes":
-                IncludesBlock(title, subtitle, body, parent=self.curr_file_block)
+                IncludesBlock(title, subtitle, body, origin, parent=self.curr_file_block)
             elif title == "CommonCode":
                 self.curr_file_block.common_code.extend(body)
             elif title == "Figure":
-                FigureBlock(title, subtitle, body, parent=parent, meta=meta, docs_dir=self.docs_dir, line_num=hdr_line_num+1)
+                FigureBlock(title, subtitle, body, origin, parent=parent, meta=meta, docs_dir=self.docs_dir)
             elif title == "Example":
-                ExampleBlock(title, subtitle, body, parent=parent, meta=meta, docs_dir=self.docs_dir, line_num=hdr_line_num+1)
+                ExampleBlock(title, subtitle, body, origin, parent=parent, meta=meta, docs_dir=self.docs_dir)
             elif title == "Figures":
                 for lnum, line in enumerate(body):
-                    FigureBlock(title[:-1], subtitle, [line], parent=parent, meta=meta, docs_dir=self.docs_dir, line_num=hdr_line_num+lnum+1)
+                    FigureBlock(title[:-1], subtitle, [line], origin, parent=parent, meta=meta, docs_dir=self.docs_dir)
             elif title == "Examples":
                 for lnum, line in enumerate(body):
-                    ExampleBlock(title[:-1], subtitle, [line], parent=parent, meta=meta, docs_dir=self.docs_dir, line_num=hdr_line_num+lnum+1)
+                    ExampleBlock(title[:-1], subtitle, [line], origin, parent=parent, meta=meta, docs_dir=self.docs_dir)
             elif title in self.header_defs:
                 parcls, cls, data, cb = self.header_defs[title]
                 if parcls and not isinstance(self.curr_parent, parcls):
                     raise DocsGenException(title, "Must be in Function/Module/Constant while declaring block:")
                 if cls in (GenericBlock, LabelBlock, TextBlock, NumberedListBlock, BulletListBlock):
-                    cls(title, subtitle, body, parent=parent)
+                    cls(title, subtitle, body, origin, parent=parent)
                 elif cls == TableBlock:
-                    cls(title, subtitle, body, parent=parent, header_sets=data)
+                    cls(title, subtitle, body, origin, parent=parent, header_sets=data)
                 elif cls in (FigureBlock, ExampleBlock):
-                    cls(title, subtitle, body, parent=parent, meta=meta, docs_dir=self.docs_dir, line_num=hdr_line_num+1)
+                    cls(title, subtitle, body, origin, parent=parent, meta=meta, docs_dir=self.docs_dir)
                 if cb:
-                    cb(title, subtitle, body, meta)
+                    cb(title, subtitle, body, origin, meta)
 
             elif title in ["Constant", "Function", "Module", "Function&Module"]:
                 if not self.curr_section:
                     raise DocsGenException(title, "Must declare Section before declaring block:")
-                self.curr_item = ItemBlock(title, subtitle, body, parent=self.curr_section)
-                self.curr_parent = self.curr_item
+                if subtitle in self.items_by_name:
+                    prevorig = self.items_by_name[subtitle][0].origin
+                    msg = "Previous declaration of `{}` at {}:{}, Redeclared:".format(subtitle, prevorig.file, prevorig.line)
+                    raise DocsGenException(title, msg)
+                item = ItemBlock(title, subtitle, body, origin, parent=self.curr_section)
+                self.items_by_name[subtitle] = (item, self.curr_parent)
+                self.curr_item = item
+                self.curr_parent = item
+            elif title == "See Also":
+                SeeAlsoBlock(title, subtitle, body, origin, parent=parent)
             else:
                 raise DocsGenException(title, "Unrecognized block:")
 
@@ -735,7 +810,7 @@ class DocsGenParser(object):
             line_num = self._skip_lines(lines, line_num)
 
         except DocsGenException as e:
-            print("{} at {}:{}".format(str(e), src_file, hdr_line_num+1), file=sys.stderr)
+            print("{} at {}:{}".format(str(e), origin.file, origin.line), file=sys.stderr)
             sys.exit(-1)
 
         return line_num
@@ -748,7 +823,6 @@ class DocsGenParser(object):
         if filename in self.ignored_files:
             return
         print("{}:".format(filename))
-        self.src_file = filename
         self.curr_file_block = None
         self.curr_section = None
         self.reset_header_defs()
@@ -786,7 +860,7 @@ class DocsGenParser(object):
             outfile = os.path.join(self.docs_dir, filename+".md")
             print("Writing {}...".format(outfile))
             with open(outfile,"w") as f:
-                for line in fblock.get_markdown():
+                for line in fblock.get_markdown(self):
                     f.write(line + "\n")
 
     def write_toc_file(self):
@@ -795,22 +869,69 @@ class DocsGenParser(object):
         out.append("# Table of Contents")
         out.append("")
         pri_blocks = self._files_prioritized()
-        fnum = 0
-        for fblock in pri_blocks:
-            fnum += 1
-            out.append("{}. {}".format(fnum, str(fblock)))
-            filename = fblock.subtitle
-            snum = 0
-            for sect in fblock.children:
-                if isinstance(sect,SectionBlock):
-                    snum += 1
-                    out.append(block_link(sect, srcfile=filename, prefix="    {}. ".format(snum)))
-                    inum = 0
-                    for item in sect.children:
-                        if isinstance(item,ItemBlock):
-                            inum += 1
-                            out.append(block_link(item, srcfile=filename, prefix="        - "))
+        for fnum, fblock in enumerate(pri_blocks):
+            out.append("{}. {}".format(fnum+1, fblock.get_link(label=str(fblock), literalize=False)))
+            sects = [
+                sect for sect in fblock.children
+                if isinstance(sect, SectionBlock)
+            ]
+            for snum, sect in enumerate(sects):
+                out.append("    {}. {}".format(snum+1, sect.get_link(label=str(sect), literalize=False)))
+                items = [
+                    item for item in sect.children
+                    if isinstance(sect, SectionBlock)
+                ]
+                for item in items:
+                    out.append("        - {} ({})".format(item.get_link(), item.title))
         outfile = os.path.join(self.docs_dir, "TOC.md")
+        print("Writing {}...".format(outfile))
+        with open(outfile, "w") as f:
+            for line in out:
+                f.write(line + "\n")
+
+    def write_topics_file(self):
+        os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
+        index_by_letter = {}
+        for file_block in self.file_blocks:
+            for section in file_block.children:
+                if not isinstance(section,SectionBlock):
+                    continue
+                for item in section.children:
+                    if not isinstance(item,ItemBlock):
+                        continue
+                    names = [item.subtitle]
+                    names.extend(item.aliases)
+                    for topic in item.topics:
+                        ltr = "0" if not topic[0].isalpha() else topic[0].upper()
+                        if ltr not in index_by_letter:
+                            index_by_letter[ltr] = {}
+                        if topic not in index_by_letter[ltr]:
+                            index_by_letter[ltr][topic] = []
+                        for name in names:
+                            index_by_letter[ltr][topic].append( (name, item) )
+
+        ltrs_found = sorted(index_by_letter.keys())
+        out = []
+        out.append("# Topics Index")
+        out.append("An index of Functions, Modules, and Constants, by topic.")
+        out.append("")
+        out.append(" - ".join(["[{0}](#{0}) ".format(ltr) for ltr in ltrs_found]))
+        out.append("")
+        for ltr in ltrs_found:
+            out.append("---")
+            out.append("### {}".format(ltr))
+            for topic, itemlist in sorted(index_by_letter[ltr].keys()).items():
+                out.append("**{}**:".format(topic))
+                sorted_items = sorted(itemlist, key=lambda x: x[0].lower())
+                for name, item in sorted_items:
+                    out.append(
+                        "- {} (in {})".format(
+                            item.get_link(label=name),
+                            mkdn_esc(item.origin.file)
+                        )
+                    )
+                out.append("")
+        outfile = os.path.join(self.docs_dir, "Topics.md")
         print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
             for line in out:
@@ -818,47 +939,47 @@ class DocsGenParser(object):
 
     def write_index_file(self):
         os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
-        items = []
+        unsorted_items = []
         for file_block in self.file_blocks:
-            for section in file_block.children:
-                if isinstance(section,SectionBlock):
-                    for item in section.children:
-                        if isinstance(item,ItemBlock):
-                            items.append( (item, file_block) )
-        sorted_items = sorted(items, key=lambda x: x[0].subtitle.lower())
+            sections = [
+                sect for sect in file_block.children
+                if isinstance(sect, SectionBlock)
+            ]
+            for sect in sections:
+                items = [
+                    item for item in sect.children
+                    if isinstance(sect, SectionBlock)
+                ]
+                for item in items:
+                    names = [item.subtitle]
+                    names.extend(item.aliases)
+                    for name in names:
+                        unsorted_items.append( (name, item) )
+        sorted_items = sorted(unsorted_items, key=lambda x: x[0].lower())
+        index_by_letter = {}
+        for name, item in sorted_items:
+            ltr = "0" if not name[0].isalpha() else name[0].upper()
+            if ltr not in index_by_letter:
+                index_by_letter[ltr] = []
+            index_by_letter[ltr].append( (name, item ) )
+        ltrs_found = sorted(index_by_letter.keys())
         out = []
-        letters_found = []
         out.append("# Alphabetical Index")
-        out.append("An index of Functions, Modules, and Constants")
+        out.append("An index of Functions, Modules, and Constants by name.")
         out.append("")
+        out.append(" ".join(["[{0}](#{0}) ".format(ltr) for ltr in ltrs_found]))
         out.append("")
-        for letter in string.ascii_uppercase:
-            ltr_items = []
-            for item, fblock in sorted_items:
-                if item.subtitle.strip():
-                    if item.subtitle.strip().upper()[0] == letter:
-                        ltr_items.append( (item, fblock) )
-            if ltr_items:
-                out.append("---")
-                out.append("### {}".format(letter))
-                letters_found.append(letter)
-            for item, fblock in ltr_items:
-                out.append(block_link(item, srcfile=fblock.src_file, prefix="- ", shorthand=True) + " (in {})".format(mkdn_esc(fblock.src_file)))
-        digit_items = [
-            (item, fblock)  for item, fblock in sorted_items
-            if item.subtitle.strip() and item.subtitle.strip()[0].isdigit()
-        ]
-        if digit_items:
+        for ltr in ltrs_found:
             out.append("---")
-            out.append("### 0")
-            letters_found.append('0')
-        for item, fblock in digit_items:
-            out.append(block_link(item, srcfile=fblock.src_file, prefix="- ", shorthand=True) + " (in {})".format(mkdn_esc(fblock.src_file)))
-        ltrlinks = ""
-        for ltr in letters_found:
-            ltrlinks += "[{0}](#{0}) ".format(ltr)
-        out.insert(3, ltrlinks)
-        out.append("")
+            out.append("### {}".format(ltr))
+            for name, item in index_by_letter[ltr]:
+                out.append(
+                    "- {} (in {})".format(
+                        item.get_link(label=name),
+                        mkdn_esc(item.origin.file)
+                    )
+                )
+            out.append("")
         outfile = os.path.join(self.docs_dir, "Index.md")
         print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
@@ -883,11 +1004,10 @@ class DocsGenParser(object):
                         continue
                     if item.title != "Constant":
                         continue
-                    consts.append("[`{0}`]({1}#{2})".format(
-                        item.subtitle,
-                        file_block.src_file,
-                        header_link(str(item))
-                    ))
+                    names = [item.subtitle]
+                    names.extend(item.aliases)
+                    for name in names:
+                        consts.append(item.get_link(label=name))
                 lines = []
                 for item in section.children:
                     if not isinstance(item,ItemBlock):
@@ -895,11 +1015,7 @@ class DocsGenParser(object):
                     if item.title == "Constant":
                         continue
                     item_name = re.sub(r'[^A-Za-z0-9_$]', r'', item.subtitle)
-                    link = "[{0}]({1}#{2})".format(
-                        item_name,
-                        file_block.src_file,
-                        header_link(str(item))
-                    )
+                    link = item.get_link(label=item_name, literalize=False)
                     usages = [
                         usage
                         for usage in item.children
@@ -907,7 +1023,7 @@ class DocsGenParser(object):
                     ]
                     for usage in usages:
                         for line in usage.body:
-                            lines.append("<code>{}</code>  ".format(mkdn_esc(line.replace(item_name,link))))
+                            lines.append("<code>{}</code>  ".format(line.replace(item_name,link)))
                     if lines:
                         lines.append("")
 
