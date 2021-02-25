@@ -177,10 +177,10 @@ class SeeAlsoBlock(LabelBlock):
         names = [name.strip() for name in self.subtitle.split(",")]
         items = []
         for name in names:
-            if name in controller.items_by_name:
-                raise DocsGenException(title, "Invalid Link '{}', while declaring block:".format(name))
+            if name not in controller.items_by_name:
+                raise DocsGenException(self.title, "Invalid Link '{}', while declaring block:".format(name))
             items.append( controller.items_by_name[name] )
-        links = ", ".join( item.get_link(currfile=self.origin.file) for item in items )
+        links = ", ".join( item.get_link(currfile=self.origin.file) for item,parent in items )
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(links)))
         out.append("")
@@ -926,7 +926,9 @@ class DocsGenParser(object):
         for ltr in ltrs_found:
             out.append("---")
             out.append("### {}".format(ltr))
-            for topic, itemlist in sorted(index_by_letter[ltr].keys()).items():
+            topics = sorted(index_by_letter[ltr].keys())
+            for topic in topics:
+                itemlist = index_by_letter[ltr][topic]
                 out.append("**{}**:".format(topic))
                 sorted_items = sorted(itemlist, key=lambda x: x[0].lower())
                 for name, item in sorted_items:
