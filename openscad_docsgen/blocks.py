@@ -62,7 +62,7 @@ class DocsGenException(Exception):
 
 
 class GenericBlock(object):
-    _linkpat = re.compile(r'^(.*)\{\{([A-Za-z0-9_()]+)\}\}(.*)$')
+    _link_pat = re.compile(r'^(.*)\{\{([A-Za-z0-9_()]+)\}\}(.*)$')
 
     def __init__(self, title, subtitle, body, origin, parent=None):
         self.title = title
@@ -77,8 +77,8 @@ class GenericBlock(object):
 
     def __str__(self):
         return "{}: {}".format(
-            mkdn_esc(self.title.replace('&', '/')),
-            mkdn_esc(self.subtitle)
+            self.title.replace('&', '/'),
+            self.subtitle
         )
 
     def sort_children(self, front_blocks=(), back_blocks=()):
@@ -113,6 +113,23 @@ class GenericBlock(object):
     def get_toc_lines(self):
         return []
 
+    def parse_links(self, line, controller):
+        oline = ""
+        while line:
+            m = self._link_pat.match(line)
+            if m:
+                oline += mkdn_esc(m.group(1))
+                name = m.group(2)
+                line = m.group(3)
+                if name not in controller.items_by_name:
+                    raise DocsGenException("Invalid Link {{{{{0}}}}} in file {1}, line {2}".format(name, self.origin.file, self.origin.line))
+                item, parent = controller.items_by_name[name]
+                oline += item.get_link(label=name, currfile=self.origin.file)
+            else:
+                oline += mkdn_esc(line)
+                line = ""
+        return oline
+
     def get_markdown_body(self, controller):
         out = []
         if not self.body:
@@ -126,21 +143,7 @@ class GenericBlock(object):
             elif line == ".":
                 out.append("")
             else:
-                oline = ""
-                while line:
-                    m = self._linkpat.match(line)
-                    if m:
-                        oline += m.group(1)
-                        name = m.group(2)
-                        line = m.group(3)
-                        if name not in controller.items_by_name:
-                            raise DocsGenException("Invalid Link {{{{{0}}}}} in file {1}, line {2}".format(name, self.origin.file, self.origin.line))
-                        item, parent = self.items_by_name[name]
-                        oline += item.get_link(label=name, currfile=self.origin.file)
-                    else:
-                        oline += line
-                        line = ""
-                out.append(mkdn_esc(oline))
+                out.append(self.parse_links(line, controller))
         return out
 
     def get_markdown(self, controller):
@@ -200,7 +203,7 @@ class BulletListBlock(GenericBlock):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         for line in self.body:
-            out.append("- {}".format(mkdn_esc(line)))
+            out.append("- {}".format(self.parse_links(line, controller)))
         out.append("")
         return out
 
@@ -214,7 +217,7 @@ class NumberedListBlock(GenericBlock):
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         out.append("")
         for i, line in enumerate(self.body):
-            out.append("{}. {}".format(i+1, mkdn_esc(line)))
+            out.append("{}. {}".format(i+1, self.parse_links(line, controller)))
         out.append("")
         return out
 
@@ -266,13 +269,13 @@ class TableBlock(GenericBlock):
                 if hdr.startswith("^"):
                     cell = " / ".join("{:20s}".format("`{}`".format(x.strip())) for x in cell.split("/"))
                 else:
-                    cell = mkdn_esc(cell)
+                    cell = self.parse_links(cell,controller)
                 fcells.append(cell)
             table.append( " | ".join(fcells) )
         if table:
             tables.append(table)
         out = []
-        out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
+        out.append(mkdn_esc("**{}:** {}".format(self.title, self.subtitle)))
         for table in tables:
             out.extend(table)
             out.append("")
@@ -583,10 +586,14 @@ class DocsGenParser(object):
         self.file_hashes = {}
         hashfile = os.path.join(self.docs_dir, self.HASHFILE)
         if os.path.isfile(hashfile):
-            with open(hashfile, "r") as f:
-                for line in f.readlines():
-                    filename, hashstr = line.strip().split("|")
-                    self.file_hashes[filename] = hashstr
+            try:
+                with open(hashfile, "r") as f:
+                    for line in f.readlines():
+                        filename, hashstr = line.strip().split("|")
+                        self.file_hashes[filename] = hashstr
+            except ValueError as e:
+                print("Corrrupt hashes file.  Ignoring.", file=sys.stderr)
+                self.file_hashes = {}
 
     def matches_hash(self, filename):
         newhash = self._sha256sum(filename)
@@ -609,7 +616,6 @@ class DocsGenParser(object):
     def reset_header_defs(self):
         self.header_defs = {
             # BlockHeader:   (parenttype, nodetype, extras, callback)
-            #'Usage':         ( ItemBlock, BulletListBlock, None, None),
             'Status':        ( ItemBlock, LabelBlock, None, self._status_block_cb ),
             'Topics':        ( ItemBlock, LabelBlock, None, self._topics_block_cb ),
             'Alias':         ( ItemBlock, LabelBlock, None, self._alias_block_cb ),
@@ -1023,7 +1029,8 @@ class DocsGenParser(object):
                     ]
                     for usage in usages:
                         for line in usage.body:
-                            lines.append("<code>{}</code>  ".format(line.replace(item_name,link)))
+                            line = mkdn_esc(line).replace(mkdn_esc(item_name),link)
+                            lines.append("<code>{}</code>  ".format(line))
                     if lines:
                         lines.append("")
 
