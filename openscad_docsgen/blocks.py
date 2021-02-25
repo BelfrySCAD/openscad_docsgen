@@ -528,7 +528,10 @@ class ImageBlock(GenericBlock):
                 )
             )
             out.append("")
-        if "Figure" not in self.title:
+        if "Figure" in self.title:
+            out.append('<br clear="all" />')
+            out.append("")
+        else:
             if self.image_req and self.image_req.script_under:
                 out.append('<br clear="all" />')
                 out.append("")
