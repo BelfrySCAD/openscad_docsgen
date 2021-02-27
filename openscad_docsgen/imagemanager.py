@@ -60,32 +60,36 @@ class ImageRequest(object):
             scale = 1.0
         self.imgsize = [scale*x for x in self.imgsize]
 
+        has_vp_splat = False
+        match = self._vpr_re.search(image_meta)
+        if match:
+            self.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
+            has_vp_splat = True
+        match = self._vpt_re.search(image_meta)
+        if match:
+            self.script_lines.insert(0, "$vpt = [{}];".format(match.group(1)))
+            has_vp_splat = True
+        match = self._vpd_re.search(image_meta)
+        if match:
+            self.script_lines.insert(0, "$vpd = {};".format(match.group(1)))
+            has_vp_splat = True
+
         if "FlatSpin" in image_meta:
             self.script_lines.insert(0, "$vpr = [55, 0, 360*$t];")
+            has_vp_splat = True
         elif "Spin" in image_meta:
             match = self._vpr_re.search(image_meta)
             if match:
                 self.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
             else:
                 self.script_lines.insert(0, "$vpr = [90-45*cos(360*$t), 0, 360*$t];")
+            has_vp_splat = True
         elif "3D" in image_meta:
             self.camera = [0,0,0,55,0,25,444]
         elif "2D" in image_meta:
             self.camera = [0,0,0,0,0,0,444]
-        else:
-            match = self._vpr_re.search(image_meta)
-            if match:
-                self.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
-            else:
-                self.camera = [0,0,0,55,0,25,444]
-
-        match = self._vpt_re.search(image_meta)
-        if match:
-            self.script_lines.insert(0, "$vpt = [{}];".format(match.group(1)))
-
-        match = self._vpd_re.search(image_meta)
-        if match:
-            self.script_lines.insert(0, "$vpd = {};".format(match.group(1)))
+        if has_vp_splat:
+            self.camera = None
 
         match = self._fps_re.search(image_meta)
         if match:

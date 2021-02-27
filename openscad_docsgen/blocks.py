@@ -862,7 +862,11 @@ class DocsGenParser(object):
     def dump_full_tree(self):
         self.dump_tree(self.file_blocks)
 
-    def write_markdown_docsfiles(self):
+    def write_markdown_docsfiles(self, testonly=False):
+        if testonly:
+            for fblock in self.file_blocks:
+                lines = fblock.get_markdown(self)
+            return
         os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
         for fblock in self.file_blocks:
             filename = fblock.subtitle
