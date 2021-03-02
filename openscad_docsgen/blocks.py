@@ -178,7 +178,7 @@ class SeeAlsoBlock(LabelBlock):
         items = []
         for name in names:
             if name not in controller.items_by_name:
-                raise DocsGenException(self.title, "Invalid Link '{}', while declaring block:".format(name))
+                raise DocsGenException("Invalid Link {{{{{0}}}}} in file {1}, line {2}".format(name, self.origin.file, self.origin.line))
             items.append( controller.items_by_name[name] )
         links = ", ".join( item.get_link(currfile=self.origin.file) for item in items )
         out = []
