@@ -123,7 +123,7 @@ class GenericBlock(object):
                 line = m.group(3)
                 if name not in controller.items_by_name:
                     raise DocsGenException("Invalid Link {{{{{0}}}}} in file {1}, line {2}".format(name, self.origin.file, self.origin.line))
-                item, parent = controller.items_by_name[name]
+                item = controller.items_by_name[name]
                 oline += item.get_link(label=name, currfile=self.origin.file)
             else:
                 oline += mkdn_esc(line)
@@ -180,7 +180,7 @@ class SeeAlsoBlock(LabelBlock):
             if name not in controller.items_by_name:
                 raise DocsGenException(self.title, "Invalid Link '{}', while declaring block:".format(name))
             items.append( controller.items_by_name[name] )
-        links = ", ".join( item.get_link(currfile=self.origin.file) for item,parent in items )
+        links = ", ".join( item.get_link(currfile=self.origin.file) for item in items )
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(links)))
         out.append("")
@@ -645,7 +645,10 @@ class DocsGenParser(object):
         self.curr_item.topics = [x.strip() for x in subtitle.split(",")]
 
     def _alias_block_cb(self, title, subtitle, body, origin, meta):
-        self.curr_item.aliases = [x.strip() for x in subtitle.split(",")]
+        aliases = [x.strip() for x in subtitle.split(",")]
+        self.curr_item.aliases.extend(aliases)
+        for alias in aliases:
+            self.items_by_name[alias] = self.curr_item
 
     def _skip_lines(self, lines, line_num=0):
         while line_num < len(lines):
@@ -802,11 +805,11 @@ class DocsGenParser(object):
                 if not self.curr_section:
                     raise DocsGenException(title, "Must declare Section before declaring block:")
                 if subtitle in self.items_by_name:
-                    prevorig = self.items_by_name[subtitle][0].origin
+                    prevorig = self.items_by_name[subtitle].origin
                     msg = "Previous declaration of `{}` at {}:{}, Redeclared:".format(subtitle, prevorig.file, prevorig.line)
                     raise DocsGenException(title, msg)
                 item = ItemBlock(title, subtitle, body, origin, parent=self.curr_section)
-                self.items_by_name[subtitle] = (item, self.curr_parent)
+                self.items_by_name[subtitle] = item
                 self.curr_item = item
                 self.curr_parent = item
             elif title == "See Also":
