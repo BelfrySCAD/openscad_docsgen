@@ -891,8 +891,8 @@ class DocsGenParser(object):
                 sect for sect in fblock.children
                 if isinstance(sect, SectionBlock)
             ]
-            for snum, sect in enumerate(sects):
-                out.append("    {}. {}".format(snum+1, sect.get_link(label=sect.subtitle, literalize=False)))
+            for sect in sects:
+                out.append("    - {}:".format(sect.get_link(label=sect.subtitle, literalize=False)))
                 items = [
                     item for item in sect.children
                     if isinstance(sect, SectionBlock)
