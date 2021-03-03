@@ -886,19 +886,18 @@ class DocsGenParser(object):
         out.append("")
         pri_blocks = self._files_prioritized()
         for fnum, fblock in enumerate(pri_blocks):
-            out.append("{}. {}".format(fnum+1, fblock.get_link(label=str(fblock), literalize=False)))
+            out.append("{}. {}".format(fnum+1, fblock.get_link(label=fblock.subtitle, literalize=False)))
             sects = [
                 sect for sect in fblock.children
                 if isinstance(sect, SectionBlock)
             ]
             for snum, sect in enumerate(sects):
-                out.append("    {}. {}".format(snum+1, sect.get_link(label=str(sect), literalize=False)))
+                out.append("    {}. {}".format(snum+1, sect.get_link(label=sect.subtitle, literalize=False)))
                 items = [
                     item for item in sect.children
                     if isinstance(sect, SectionBlock)
                 ]
-                for item in items:
-                    out.append("        - {} ({})".format(item.get_link(), item.title))
+                out.append("        " + (" ".join(item.get_link() for item in items)))
         outfile = os.path.join(self.docs_dir, "TOC.md")
         print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
@@ -931,12 +930,14 @@ class DocsGenParser(object):
         out.append("# Topics Index")
         out.append("An index of Functions, Modules, and Constants, by topic.")
         out.append("")
-        out.append(" - ".join(["[{0}](#{0}) ".format(ltr) for ltr in ltrs_found]))
+        out.append("( {} )".format(" - ".join("[{0}](#{0})".format(ltr) for ltr in ltrs_found)))
         out.append("")
         for ltr in ltrs_found:
             out.append("---")
             out.append("### {}".format(ltr))
             topics = sorted(index_by_letter[ltr].keys())
+            out.append("( {} )".format(" - ".join("[{0}](#{0})".format(topic) for topic in topics)))
+            out.append("")
             for topic in topics:
                 itemlist = index_by_letter[ltr][topic]
                 out.append("**{}**:".format(topic))
@@ -1039,12 +1040,13 @@ class DocsGenParser(object):
                         for usage in item.children
                         if usage.title == "Usage"
                     ]
+                    oline = ""
                     for usage in usages:
                         for line in usage.body:
                             line = mkdn_esc(line).replace(mkdn_esc(item_name),link)
-                            lines.append("<code>{}</code>  ".format(line))
-                    if lines:
-                        lines.append("")
+                            oline += "<code>{}</code>  ".format(line)
+                    if oline:
+                        lines.append(oline)
 
                 if consts or lines:
                     if not file_shown:
