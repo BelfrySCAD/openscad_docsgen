@@ -198,10 +198,12 @@ class ImageManager(object):
             hard_warnings=no_vp
         )
         osc.run()
+        osc.warnings = [line for line in osc.warnings if "Viewall and autocenter disabled" not in line]
 
         os.unlink(script_file)
 
-        if not osc.good():
+        if not osc.good() or osc.warnings or osc.errors:
+            osc.success = False
             req.completed("FAIL", osc)
             return
 
