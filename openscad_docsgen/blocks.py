@@ -169,6 +169,20 @@ class LabelBlock(GenericBlock):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
 
+class TopicsBlock(LabelBlock):
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        super().__init__(title, subtitle, body, origin, parent=parent)
+        self.topics = [x.strip() for x in subtitle.split(",")]
+        parent.topics = self.topics
+
+    def get_markdown(self, controller):
+        links = ", ".join("[{0}](Topics#{1})".format(mkdn_esc(topic),header_link(topic)) for topic in self.topics)
+        out = []
+        out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(links)))
+        out.append("")
+        return out
+
+
 class SeeAlsoBlock(LabelBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
@@ -178,7 +192,7 @@ class SeeAlsoBlock(LabelBlock):
         items = []
         for name in names:
             if name not in controller.items_by_name:
-                raise DocsGenException("Invalid Link {{{{{0}}}}} in file {1}, line {2}".format(name, self.origin.file, self.origin.line))
+                raise DocsGenException("Invalid Link '{0}' in file {1}, line {2}".format(name, self.origin.file, self.origin.line))
             items.append( controller.items_by_name[name] )
         links = ", ".join( item.get_link(currfile=self.origin.file) for item in items )
         out = []
@@ -620,7 +634,6 @@ class DocsGenParser(object):
         self.header_defs = {
             # BlockHeader:   (parenttype, nodetype, extras, callback)
             'Status':        ( ItemBlock, LabelBlock, None, self._status_block_cb ),
-            'Topics':        ( ItemBlock, LabelBlock, None, self._topics_block_cb ),
             'Alias':         ( ItemBlock, LabelBlock, None, self._alias_block_cb ),
             'Aliases':       ( ItemBlock, LabelBlock, None, self._alias_block_cb ),
             'Arguments':     ( ItemBlock, TableBlock, (
@@ -640,9 +653,6 @@ class DocsGenParser(object):
 
     def _status_block_cb(self, title, subtitle, body, origin, meta):
         self.curr_item.deprecated = "DEPRECATED" in subtitle
-
-    def _topics_block_cb(self, title, subtitle, body, origin, meta):
-        self.curr_item.topics = [x.strip() for x in subtitle.split(",")]
 
     def _alias_block_cb(self, title, subtitle, body, origin, meta):
         aliases = [x.strip() for x in subtitle.split(",")]
@@ -812,6 +822,8 @@ class DocsGenParser(object):
                 self.items_by_name[subtitle] = item
                 self.curr_item = item
                 self.curr_parent = item
+            elif title == "Topics":
+                TopicsBlock(title, subtitle, body, origin, parent=parent)
             elif title == "See Also":
                 SeeAlsoBlock(title, subtitle, body, origin, parent=parent)
             else:
@@ -892,7 +904,7 @@ class DocsGenParser(object):
                 if isinstance(sect, SectionBlock)
             ]
             for sect in sects:
-                out.append("    - {}:".format(sect.get_link(label=sect.subtitle, literalize=False)))
+                out.append("    - {}:  ".format(sect.get_link(label=sect.subtitle, literalize=False)))
                 items = [
                     item for item in sect.children
                     if isinstance(sect, SectionBlock)
@@ -928,19 +940,30 @@ class DocsGenParser(object):
         ltrs_found = sorted(index_by_letter.keys())
         out = []
         out.append("# Topics Index")
-        out.append("An index of Functions, Modules, and Constants, by topic.")
+        out.append("An index of topics, with related functions, modules, and constants.")
         out.append("")
-        out.append("( {} )".format(" - ".join("[{0}](#{0})".format(ltr) for ltr in ltrs_found)))
         out.append("")
         for ltr in ltrs_found:
+            topics = sorted(index_by_letter[ltr].keys())
+            out.append(
+                "- [{0}](#{0}): {1}".format(
+                    ltr,
+                    ", ".join(
+                        "[{0}](#{1})".format(mkdn_esc(topic), header_link(topic))
+                        for topic in topics
+                    )
+                )
+            )
+        out.append("")
+
+        for ltr in ltrs_found:
+            topics = sorted(index_by_letter[ltr].keys())
             out.append("---")
             out.append("### {}".format(ltr))
-            topics = sorted(index_by_letter[ltr].keys())
-            out.append("( {} )".format(" - ".join("[{0}](#{0})".format(topic) for topic in topics)))
             out.append("")
             for topic in topics:
                 itemlist = index_by_letter[ltr][topic]
-                out.append("**{}**:".format(topic))
+                out.append("#### {}:".format(topic))
                 sorted_items = sorted(itemlist, key=lambda x: x[0].lower())
                 for name, item in sorted_items:
                     out.append(
