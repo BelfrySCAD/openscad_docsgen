@@ -5,6 +5,7 @@ import os.path
 import re
 import sys
 import glob
+import json
 import string
 import hashlib
 from collections import namedtuple
@@ -122,9 +123,12 @@ class GenericBlock(object):
                 name = m.group(2)
                 line = m.group(3)
                 if name not in controller.items_by_name:
-                    raise DocsGenException("Invalid Link {{{{{0}}}}} in file {1}, line {2}".format(name, self.origin.file, self.origin.line))
-                item = controller.items_by_name[name]
-                oline += item.get_link(label=name, currfile=self.origin.file)
+                    msg = "Invalid Link {{{{{0}}}}}".format(name)
+                    errorlog.add_entry(self.origin.file, self.origin.line, msg, ErrorLog.FAIL)
+                    oline += mkdn_esc(name)
+                else:
+                    item = controller.items_by_name[name]
+                    oline += item.get_link(label=name, currfile=self.origin.file)
             else:
                 oline += mkdn_esc(line)
                 line = ""
@@ -192,8 +196,12 @@ class SeeAlsoBlock(LabelBlock):
         items = []
         for name in names:
             if name not in controller.items_by_name:
-                raise DocsGenException("Invalid Link '{0}' in file {1}, line {2}".format(name, self.origin.file, self.origin.line))
-            items.append( controller.items_by_name[name] )
+                msg = "Invalid Link '{0}'".format(name)
+                errorlog.add_entry(self.origin.file, self.origin.line, msg, ErrorLog.FAIL)
+            else:
+                item = controller.items_by_name[name]
+                if item is not self.parent:
+                    items.append( item )
         links = ", ".join( item.get_link(currfile=self.origin.file) for item in items )
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(links)))
@@ -506,22 +514,21 @@ class ImageBlock(GenericBlock):
                 print(req.status)
             sys.stdout.flush()
             return
-        out = "\n\n"
+        pfx = "     "
+        out = "Failed OpenSCAD script:\n"
+        out += pfx + "Image: {}\n".format( os.path.basename(req.image_file) )
         for line in req.echos:
-            out += line + "\n"
+            out += pfx + line + "\n"
         for line in req.warnings:
-            out += line + "\n"
+            out += pfx + line + "\n"
         for line in req.errors:
-            out += line + "\n"
-        out += "LibFile: {}  Line: {}  Image: {}\n".format(
-            req.src_file, req.src_line, os.path.basename(req.image_file)
-        )
-        out += "------------------------------------------------------------------------------\n"
+            out += pfx + line + "\n"
+        out += pfx + ("-=" * 32) + "-\n"
         for line in req.script_lines:
-            out += line + "\n"
-        out += "------------------------------------------------------------------------------\n"
-        print(out, file=sys.stderr)
-        sys.exit(-1)
+            out += pfx + line + "\n"
+        out += pfx + ("=-" * 32) + "="
+        print("", file=sys.stderr)
+        errorlog.add_entry(req.src_file, req.src_line, out, ErrorLog.FAIL)
 
     def get_markdown(self, controller):
         fileblock = self.parent
@@ -566,6 +573,45 @@ class FigureBlock(ImageBlock):
 class ExampleBlock(ImageBlock):
     def __init__(self, title, subtitle, body, origin, parent, meta="", docs_dir=""):
         super().__init__(title, subtitle, body, origin, parent=parent, meta=meta, docs_dir=docs_dir)
+
+
+class ErrorLog(object):
+    NOTE = "notice"
+    WARN = "warning"
+    FAIL = "error"
+
+    REPORT_FILE = "docsgen_report.json"
+
+    def __init__(self):
+        self.errlist = []
+        self.has_errors = False
+        self.badfiles = {}
+
+    def add_entry(self, file, line, msg, level):
+        self.errlist.append( (file, line, msg, level) )
+        self.badfiles[file] = 1
+        print("!! {} at {}:{}: {}".format(level.upper(), file, line, msg) , file=sys.stderr)
+        if level == self.FAIL:
+            self.has_errors = True
+
+    def write_report(self):
+        report = [
+            {
+                "file": file,
+                "line": line,
+                "title": "DocsGen {}".format(level),
+                "message": msg,
+                "annotation_level": level
+            }
+            for file, line, msg, level in self.errlist
+        ]
+        with open(self.REPORT_FILE, "w") as f:
+            f.write(json.dumps(report, sort_keys=True, indent=4))
+
+    def file_has_errors(self, file):
+        return file in self.badfiles
+
+errorlog = ErrorLog()
 
 
 class DocsGenParser(object):
@@ -834,8 +880,7 @@ class DocsGenParser(object):
             line_num = self._skip_lines(lines, line_num)
 
         except DocsGenException as e:
-            print("{} at {}:{}".format(str(e), origin.file, origin.line), file=sys.stderr)
-            sys.exit(-1)
+            errorlog.add_entry(origin.file, origin.line, str(e), ErrorLog.FAIL)
 
         return line_num
 
@@ -863,6 +908,8 @@ class DocsGenParser(object):
             else:
                 imgmgr.purge_requests()
             if not test_only:
+                if errorlog.file_has_errors(filename):
+                    self.file_hashes.pop(filename)
                 self.write_hashes()
 
     def dump_tree(self, nodes, pfx="", maxdepth=6):

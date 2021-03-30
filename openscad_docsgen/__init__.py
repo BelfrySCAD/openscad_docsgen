@@ -7,7 +7,7 @@ import os
 import os.path
 import argparse
 
-from .blocks import DocsGenParser, DocsGenException 
+from .blocks import DocsGenParser, DocsGenException, errorlog
 
 def processFiles(
     files, docs_dir,
@@ -19,6 +19,7 @@ def processFiles(
     gen_index=False,
     gen_topics=False,
     gen_cheat=False,
+    report=False,
     dump_tree=False
 ):
     fail = False
@@ -33,7 +34,7 @@ def processFiles(
             print("{} is not readable.".format(infile))
             fail = True
     if fail:
-        os.exit(-1)
+        sys.exit(-1)
 
     docsgen = DocsGenParser()
     for infile in files:
@@ -54,8 +55,13 @@ def processFiles(
         docsgen.write_topics_file()
     if gen_index:
         docsgen.write_cheatsheet_file()
+
     if dump_tree:
         docsgen.dump_full_tree()
+    if report:
+        errorlog.write_report()
+    if errorlog.has_errors:
+        sys.exit(-1)
 
 
 def main():
@@ -78,6 +84,8 @@ def main():
                         help='If given, generate TOC.md table of contents file.')
     parser.add_argument('-c', '--gen-cheat', action="store_true",
                         help='If given, generate CheatSheet.md file with all Usage lines.')
+    parser.add_argument('-r', '--report', action="store_true",
+                        help='If given, write all warnings and errors to docsgen_report.json')
     parser.add_argument('-d', '--dump-tree', action="store_true",
                         help='If given, dumps the documentation tree for debugging.')
     parser.add_argument('srcfile', nargs='+', help='List of input source files.')
@@ -95,6 +103,7 @@ def main():
             gen_index=args.gen_index,
             gen_topics=args.gen_topics,
             gen_cheat=args.gen_cheat,
+            report=args.report,
             dump_tree=args.dump_tree
         )
 

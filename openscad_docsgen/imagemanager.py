@@ -170,37 +170,39 @@ class ImageManager(object):
             for line in req.script_lines:
                 f.write(line + "\n")
 
-        no_vp = True
-        for line in req.script_lines:
-            if "$vp" in line:
-                no_vp = False
+        try:
+            no_vp = True
+            for line in req.script_lines:
+                if "$vp" in line:
+                    no_vp = False
 
-        render_mode = req.render_mode
-        animate = req.animation_frames
-        if self.test_only:
-            render_mode = RenderMode.test_only
-            animate = None
+            render_mode = req.render_mode
+            animate = req.animation_frames
+            if self.test_only:
+                render_mode = RenderMode.test_only
+                animate = None
 
-        osc = OpenScadRunner(
-            script_file,
-            new_img_file,
-            animate=animate,
-            animate_duration=req.frame_ms,
-            imgsize=req.imgsize,
-            antialias=2,
-            orthographic=True,
-            camera=req.camera,
-            auto_center=no_vp,
-            view_all=no_vp,
-            show_edges=req.show_edges,
-            show_axes=req.show_axes,
-            render_mode=render_mode,
-            hard_warnings=no_vp
-        )
-        osc.run()
-        osc.warnings = [line for line in osc.warnings if "Viewall and autocenter disabled" not in line]
+            osc = OpenScadRunner(
+                script_file,
+                new_img_file,
+                animate=animate,
+                animate_duration=req.frame_ms,
+                imgsize=req.imgsize,
+                antialias=2,
+                orthographic=True,
+                camera=req.camera,
+                auto_center=no_vp,
+                view_all=no_vp,
+                show_edges=req.show_edges,
+                show_axes=req.show_axes,
+                render_mode=render_mode,
+                hard_warnings=no_vp
+            )
+            osc.run()
+            osc.warnings = [line for line in osc.warnings if "Viewall and autocenter disabled" not in line]
 
-        os.unlink(script_file)
+        finally:
+            os.unlink(script_file)
 
         if not osc.good() or osc.warnings or osc.errors:
             osc.success = False
