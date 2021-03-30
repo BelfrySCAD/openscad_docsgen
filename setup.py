@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 
 with open('README.rst') as f:
@@ -23,7 +23,7 @@ setup(
     packages=['openscad_docsgen'],
     license='MIT License',
     classifiers=[
-        'Development Status :: 5 - Stable',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: Manufacturing',
