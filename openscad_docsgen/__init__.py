@@ -11,6 +11,7 @@ from .blocks import DocsGenParser, DocsGenException, errorlog
 
 def processFiles(
     files, docs_dir,
+    strict=False,
     test_only=False,
     force=False,
     gen_imgs=False,
@@ -36,7 +37,7 @@ def processFiles(
     if fail:
         sys.exit(-1)
 
-    docsgen = DocsGenParser()
+    docsgen = DocsGenParser(strict=strict)
     for infile in files:
         docsgen.parse_file(
             infile,
@@ -68,6 +69,8 @@ def main():
     parser = argparse.ArgumentParser(prog='openscad-docsgen')
     parser.add_argument('-D', '--docs-dir', default="docs",
                         help='The directory to put generated documentation in.')
+    parser.add_argument('-S', '--strict', action="store_true",
+                        help='If given, section blocks are required.')
     parser.add_argument('-T', '--test-only', action="store_true",
                         help="If given, don't generate images, but do try executing the scripts.")
     parser.add_argument('-f', '--force', action="store_true",
@@ -95,6 +98,7 @@ def main():
         processFiles(
             args.srcfile,
             docs_dir=args.docs_dir,
+            strict=args.strict,
             test_only=args.test_only,
             force=args.force,
             gen_imgs=not args.no_images,

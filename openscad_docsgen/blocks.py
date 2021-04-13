@@ -328,14 +328,17 @@ class FileBlock(GenericBlock):
         out.append("")
         out.append("# Table of Contents")
         out.append("")
-        for n, sect in enumerate(sections):
-            out.append("{0}. {1}".format(
-                n+1, sect.get_link(
-                    label=str(sect),
-                    currfile=self.origin.file,
-                    literalize=False
-                )
-            ))
+        n = 0
+        for sect in sections:
+            if not isinstance(sect, DummySectionBlock):
+                n += 1
+                out.append("{0}. {1}".format(
+                    n, sect.get_link(
+                        label=str(sect),
+                        currfile=self.origin.file,
+                        literalize=False
+                    )
+                ))
             out.extend(sect.get_toc_lines())
             out.append("")
         return out
@@ -376,11 +379,12 @@ class SectionBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
-    def get_toc_lines(self):
+    def get_toc_lines(self, indent=4):
         out = []
         for child in self.children:
             if isinstance(child, ItemBlock):
-                out.append("    - {}".format(child.get_link(currfile=self.origin.file)))
+                child_link = "- {}".format(child.get_link(currfile=self.origin.file))
+                out.append(" "*indent + child_link)
         return out
 
     def get_markdown(self, controller):
@@ -390,6 +394,12 @@ class SectionBlock(GenericBlock):
         out.append("## {}".format(mkdn_esc(str(self))))
         out.extend(self.get_markdown_body(controller))
         out.append("")
+        out += self.get_childrens_mardown(controller)
+
+        return out
+
+    def get_childrens_mardown(self, controller):
+        out = []
         cnt = 0
         for child in self.children:
             chout = child.get_markdown(controller)
@@ -401,6 +411,21 @@ class SectionBlock(GenericBlock):
             out.extend(chout)
         return out
 
+class DummySectionBlock(SectionBlock):
+    def __init__(self, origin, parent=None):
+        super().__init__("Dummy", "", "", origin, parent=parent)
+
+    def get_markdown(self, controller):
+        out = []
+        if len (self.children > 0):
+            out.append("---")
+            out.append("")
+            out += self.get_childrens_mardown(controller)
+
+        return out
+
+    def get_toc_lines(self):
+        return super().get_toc_lines(indent=0)
 
 class ItemBlock(LabelBlock):
     _paren_pat = re.compile(r'\([^\)]+\)')
@@ -619,9 +644,11 @@ class DocsGenParser(object):
     RCFILE = ".openscad_gendocs_rc"
     HASHFILE = ".source_hashes"
 
-    def __init__(self, docs_dir="docs"):
+    def __init__(self, docs_dir="docs", strict=False):
         self.docs_dir = docs_dir.rstrip("/")
+        self.strict = strict
         self.file_blocks = []
+        self.curr_filename = None
         self.curr_file_block = None
         self.curr_section = None
         self.curr_item = None
@@ -825,8 +852,12 @@ class DocsGenParser(object):
                 self.curr_file_block = FileBlock(title, subtitle, body, origin)
                 self.curr_parent = self.curr_file_block
                 self.file_blocks.append(self.curr_file_block)
+                if not self.strict:
+                    self.curr_section = DummySectionBlock(origin, parent=self.curr_file_block)
+                    self.curr_parent = self.curr_section
             elif not self.curr_file_block:
                 raise DocsGenException(title, "Must declare File or LibFile block before declaring block:")
+
 
             elif title == "Section":
                 self.curr_section = SectionBlock(title, subtitle, body, origin, parent=self.curr_file_block)
@@ -893,6 +924,7 @@ class DocsGenParser(object):
         if filename in self.ignored_files:
             return
         print("{}:".format(filename))
+        self.curr_filename = os.path.basename(filename)
         self.curr_file_block = None
         self.curr_section = None
         self.reset_header_defs()
@@ -952,7 +984,8 @@ class DocsGenParser(object):
                 if isinstance(sect, SectionBlock)
             ]
             for sect in sects:
-                out.append("    - {}:  ".format(sect.get_link(label=sect.subtitle, literalize=False)))
+                if not isinstance(sect, DummySectionBlock):
+                    out.append("    - {}:  ".format(sect.get_link(label=sect.subtitle, literalize=False)))
                 items = [
                     item for item in sect.children
                     if isinstance(sect, SectionBlock)
