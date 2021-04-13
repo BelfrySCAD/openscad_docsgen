@@ -693,9 +693,10 @@ class DocsGenParser(object):
             "// DefineHeader(BulletList): Usage",
         ]
         self.parse_lines(lines, src_file="Defaults")
-        with open(self.RCFILE, "r") as f:
-            lines = ["// " + line for line in f.readlines()]
-            self.parse_lines(lines, src_file=self.RCFILE)
+        if os.path.exists(self.RCFILE):
+            with open(self.RCFILE, "r") as f:
+                lines = ["// " + line for line in f.readlines()]
+                self.parse_lines(lines, src_file=self.RCFILE)
 
     def _status_block_cb(self, title, subtitle, body, origin, meta):
         self.curr_item.deprecated = "DEPRECATED" in subtitle
