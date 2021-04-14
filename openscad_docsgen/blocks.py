@@ -380,6 +380,11 @@ class SectionBlock(GenericBlock):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
     def get_toc_lines(self, indent=4):
+        """
+        Return the markdown table of contents lines for the children in this
+        section. This is returned as a series of bullet points.
+        `indent` sets the level of indentation for the bullet points
+        """
         out = []
         for child in self.children:
             if isinstance(child, ItemBlock):
@@ -388,17 +393,25 @@ class SectionBlock(GenericBlock):
         return out
 
     def get_markdown(self, controller):
+        """
+        Return the markdown for this section. This includes the section
+        heading and the markdown for the children. To return only the
+        the markdown for the children see `get_childrens_markdown`
+        """
         out = []
         out.append("---")
         out.append("")
         out.append("## {}".format(mkdn_esc(str(self))))
         out.extend(self.get_markdown_body(controller))
         out.append("")
-        out += self.get_childrens_mardown(controller)
+        out += self.get_childrens_markdown(controller)
 
         return out
 
-    def get_childrens_mardown(self, controller):
+    def get_childrens_markdown(self, controller):
+        """
+        Return the markdown for just the children of this section.
+        """
         out = []
         cnt = 0
         for child in self.children:
@@ -412,19 +425,34 @@ class SectionBlock(GenericBlock):
         return out
 
 class DummySectionBlock(SectionBlock):
+    """
+    Dummy section to be created at the start of each file (unless in strict
+    mode). This dummy section will print without section headings or its own
+    table of contents line. Otherwise it acts like a normal section block
+    """
+
     def __init__(self, origin, parent=None):
         super().__init__("Dummy", "", "", origin, parent=parent)
 
     def get_markdown(self, controller):
+        """
+        Returns the markdown for the dummy section. This is just the markdown
+        of the children.
+        """
         out = []
         if len (self.children > 0):
             out.append("---")
             out.append("")
-            out += self.get_childrens_mardown(controller)
+            out += self.get_childrens_markdown(controller)
 
         return out
 
     def get_toc_lines(self):
+        """
+        Returns the table of contents lines for the dummy section.
+        The indent is set to zero so that the bullet points are not
+        interpreted as a code block.
+        """
         return super().get_toc_lines(indent=0)
 
 class ItemBlock(LabelBlock):
