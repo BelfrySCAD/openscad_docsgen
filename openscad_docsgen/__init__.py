@@ -13,6 +13,7 @@ def processFiles(
     files, docs_dir,
     test_only=False,
     force=False,
+    strict=False,
     gen_imgs=False,
     gen_md=False,
     gen_toc=False,
@@ -36,7 +37,7 @@ def processFiles(
     if fail:
         sys.exit(-1)
 
-    docsgen = DocsGenParser()
+    docsgen = DocsGenParser(strict=strict)
     for infile in files:
         docsgen.parse_file(
             infile,
@@ -70,6 +71,8 @@ def main():
                         help='The directory to put generated documentation in.')
     parser.add_argument('-T', '--test-only', action="store_true",
                         help="If given, don't generate images, but do try executing the scripts.")
+    parser.add_argument('-S', '--strict', action="store_true",
+                        help="If given, require File/LibFile and Section headers.")
     parser.add_argument('-f', '--force', action="store_true",
                         help='If given, force regeneration of images.')
     parser.add_argument('-n', '--no-images', action="store_true",
@@ -97,6 +100,7 @@ def main():
             docs_dir=args.docs_dir,
             test_only=args.test_only,
             force=args.force,
+            strict=args.strict,
             gen_imgs=not args.no_images,
             gen_md=args.gen_md,
             gen_toc=args.gen_toc,

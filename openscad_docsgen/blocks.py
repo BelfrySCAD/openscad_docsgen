@@ -111,7 +111,7 @@ class GenericBlock(object):
             header_link(str(self))
         )
 
-    def get_toc_lines(self):
+    def get_toc_lines(self, indent=4):
         return []
 
     def parse_links(self, line, controller):
@@ -318,7 +318,7 @@ class FileBlock(GenericBlock):
             label = mkdn_esc(label)
         return "[{0}]({1})".format(label, self.origin.file)
 
-    def get_toc_lines(self):
+    def get_toc_lines(self, indent=4):
         sections = [
             sect for sect in self.children
             if isinstance(sect, SectionBlock)
@@ -329,14 +329,17 @@ class FileBlock(GenericBlock):
         out.append("# Table of Contents")
         out.append("")
         for n, sect in enumerate(sections):
-            out.append("{0}. {1}".format(
-                n+1, sect.get_link(
-                    label=str(sect),
-                    currfile=self.origin.file,
-                    literalize=False
-                )
-            ))
-            out.extend(sect.get_toc_lines())
+            if sect.subtitle:
+                out.append("{0}. {1}".format(
+                    n+1, sect.get_link(
+                        label=str(sect),
+                        currfile=self.origin.file,
+                        literalize=False
+                    )
+                ))
+                out.extend(sect.get_toc_lines(indent=4))
+            else:
+                out.extend(sect.get_toc_lines(indent=0))
             out.append("")
         return out
 
@@ -376,20 +379,31 @@ class SectionBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
-    def get_toc_lines(self):
+    def get_toc_lines(self, indent=4):
+        """
+        Return the markdown table of contents lines for the children in this
+        section. This is returned as a series of bullet points.
+        `indent` sets the level of indentation for the bullet points
+        """
         out = []
         for child in self.children:
             if isinstance(child, ItemBlock):
-                out.append("    - {}".format(child.get_link(currfile=self.origin.file)))
+                child_link = "- {}".format(child.get_link(currfile=self.origin.file))
+                out.append(" " * indent + child_link)
         return out
 
     def get_markdown(self, controller):
+        """
+        Return the markdown for this section. This includes the section
+        heading and the markdown for the children.
+        """
         out = []
         out.append("---")
         out.append("")
-        out.append("## {}".format(mkdn_esc(str(self))))
-        out.extend(self.get_markdown_body(controller))
-        out.append("")
+        if self.subtitle:
+            out.append("## {}".format(mkdn_esc(str(self))))
+            out.extend(self.get_markdown_body(controller))
+            out.append("")
         cnt = 0
         for child in self.children:
             chout = child.get_markdown(controller)
@@ -619,8 +633,9 @@ class DocsGenParser(object):
     RCFILE = ".openscad_gendocs_rc"
     HASHFILE = ".source_hashes"
 
-    def __init__(self, docs_dir="docs"):
+    def __init__(self, docs_dir="docs", strict=False):
         self.docs_dir = docs_dir.rstrip("/")
+        self.strict = strict
         self.file_blocks = []
         self.curr_file_block = None
         self.curr_section = None
@@ -756,6 +771,12 @@ class DocsGenParser(object):
         else:
             raise DocsGenException("DefineHeader", "Could not parse target block type, while declaring block:")
 
+    def _mkfilenode(self, origin):
+        if not self.curr_file_block:
+            self.curr_file_block = FileBlock("LibFile", origin.file, [], origin)
+            self.curr_parent = self.curr_file_block
+            self.file_blocks.append(self.curr_file_block)
+
     def _parse_block(self, lines, line_num=0, src_file=None):
         line_num = self._skip_lines(lines, line_num)
         if line_num >= len(lines):
@@ -825,24 +846,31 @@ class DocsGenParser(object):
                 self.curr_file_block = FileBlock(title, subtitle, body, origin)
                 self.curr_parent = self.curr_file_block
                 self.file_blocks.append(self.curr_file_block)
-            elif not self.curr_file_block:
+            elif not self.curr_file_block and self.strict:
                 raise DocsGenException(title, "Must declare File or LibFile block before declaring block:")
 
             elif title == "Section":
+                self._mkfilenode(origin)
                 self.curr_section = SectionBlock(title, subtitle, body, origin, parent=self.curr_file_block)
                 self.curr_parent = self.curr_section
             elif title == "Includes":
+                self._mkfilenode(origin)
                 IncludesBlock(title, subtitle, body, origin, parent=self.curr_file_block)
             elif title == "CommonCode":
+                self._mkfilenode(origin)
                 self.curr_file_block.common_code.extend(body)
             elif title == "Figure":
+                self._mkfilenode(origin)
                 FigureBlock(title, subtitle, body, origin, parent=parent, meta=meta, docs_dir=self.docs_dir)
             elif title == "Example":
+                self._mkfilenode(origin)
                 ExampleBlock(title, subtitle, body, origin, parent=parent, meta=meta, docs_dir=self.docs_dir)
             elif title == "Figures":
+                self._mkfilenode(origin)
                 for lnum, line in enumerate(body):
                     FigureBlock(title[:-1], subtitle, [line], origin, parent=parent, meta=meta, docs_dir=self.docs_dir)
             elif title == "Examples":
+                self._mkfilenode(origin)
                 for lnum, line in enumerate(body):
                     ExampleBlock(title[:-1], subtitle, [line], origin, parent=parent, meta=meta, docs_dir=self.docs_dir)
             elif title in self.header_defs:
@@ -859,8 +887,10 @@ class DocsGenParser(object):
                     cb(title, subtitle, body, origin, meta)
 
             elif title in ["Constant", "Function", "Module", "Function&Module"]:
+                self._mkfilenode(origin)
                 if not self.curr_section:
-                    raise DocsGenException(title, "Must declare Section before declaring block:")
+                    self.curr_section = SectionBlock("Section", "", [], origin, parent=self.curr_file_block)
+                    self.curr_parent = self.curr_section
                 if subtitle in self.items_by_name:
                     prevorig = self.items_by_name[subtitle].origin
                     msg = "Previous declaration of `{}` at {}:{}, Redeclared:".format(subtitle, prevorig.file, prevorig.line)
@@ -870,8 +900,12 @@ class DocsGenParser(object):
                 self.curr_item = item
                 self.curr_parent = item
             elif title == "Topics":
+                if not self.curr_item:
+                    raise DocsGenException(title, "Must be in Function/Module/Constant while declaring block:")
                 TopicsBlock(title, subtitle, body, origin, parent=parent)
             elif title == "See Also":
+                if not self.curr_item:
+                    raise DocsGenException(title, "Must be in Function/Module/Constant while declaring block:")
                 SeeAlsoBlock(title, subtitle, body, origin, parent=parent)
             else:
                 raise DocsGenException(title, "Unrecognized block:")
@@ -952,12 +986,15 @@ class DocsGenParser(object):
                 if isinstance(sect, SectionBlock)
             ]
             for sect in sects:
-                out.append("    - {}:  ".format(sect.get_link(label=sect.subtitle, literalize=False)))
+                ind = "    "
+                if sect.subtitle:
+                    out.append("    - {}:  ".format(sect.get_link(label=sect.subtitle, literalize=False)))
+                    ind += "    "
                 items = [
                     item for item in sect.children
-                    if isinstance(sect, SectionBlock)
+                    if isinstance(item, ItemBlock)
                 ]
-                out.append("        " + (" ".join(item.get_link() for item in items)))
+                out.append(ind + (" ".join(item.get_link() for item in items)))
         outfile = os.path.join(self.docs_dir, "TOC.md")
         print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
@@ -1038,7 +1075,7 @@ class DocsGenParser(object):
             for sect in sections:
                 items = [
                     item for item in sect.children
-                    if isinstance(sect, SectionBlock)
+                    if isinstance(item, ItemBlock)
                 ]
                 for item in items:
                     names = [item.subtitle]
