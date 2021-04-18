@@ -964,17 +964,20 @@ class DocsGenParser(object):
             for fblock in self.file_blocks:
                 lines = fblock.get_markdown(self)
             return
-        os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
+        os.makedirs(self.docs_dir, mode=0o744, exist_ok=True)
         for fblock in self.file_blocks:
             filename = fblock.subtitle
             outfile = os.path.join(self.docs_dir, filename+".md")
+            outdir = os.path.dirname(outfile)
+            if not os.path.exists(outdir):
+                os.makedirs(outdir, mode=0o744, exist_ok=True)
             print("Writing {}...".format(outfile))
             with open(outfile,"w") as f:
                 for line in fblock.get_markdown(self):
                     f.write(line + "\n")
 
     def write_toc_file(self):
-        os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
+        os.makedirs(self.docs_dir, mode=0o744, exist_ok=True)
         out = []
         out.append("# Table of Contents")
         out.append("")
@@ -1002,7 +1005,7 @@ class DocsGenParser(object):
                 f.write(line + "\n")
 
     def write_topics_file(self):
-        os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
+        os.makedirs(self.docs_dir, mode=0o744, exist_ok=True)
         index_by_letter = {}
         for file_block in self.file_blocks:
             for section in file_block.children:
@@ -1065,7 +1068,7 @@ class DocsGenParser(object):
                 f.write(line + "\n")
 
     def write_index_file(self):
-        os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
+        os.makedirs(self.docs_dir, mode=0o744, exist_ok=True)
         unsorted_items = []
         for file_block in self.file_blocks:
             sections = [
@@ -1114,7 +1117,7 @@ class DocsGenParser(object):
                 f.write(line + "\n")
 
     def write_cheatsheet_file(self):
-        os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
+        os.makedirs(self.docs_dir, mode=0o744, exist_ok=True)
         out = []
         out.append("# The BOSL2 Cheat Sheet")
         out.append("")
