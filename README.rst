@@ -72,3 +72,121 @@ directory you will be running openscad-docsgen from.  It can look something like
 
 For an explanation of the syntax and the specific headers, see:
 `https://github.com/revarbat/openscad_docsgen/blob/main/WRITING_DOCS.md`
+
+External Calling
+----------------
+Here's an example of how to use this library, to get the parsed documentation data::
+
+    import openscad_docsgen as docsgen
+    from glob import glob
+    from pprint import pprint
+    dgp = docsgen.DocsGenParser(quiet=True)
+    dgp.parse_files(glob("*.scad"))
+    for name in dgp.get_indexed_names():
+        data = dgp.get_indexed_data(name)
+        print(name)
+        print(data["description"])
+
+The data for an OpenSCAD function, module, or constant generally looks like::
+
+    {
+        'name': 'Function&Module',  // Could also be 'Function', 'Module', or 'Constant'
+        'subtitle': 'line_of()',
+        'body': [],
+        'file': 'distributors.scad',
+        'line': 43,
+        'aliases': ['linear_spread()'],
+        'topics': ['Distributors'],
+        'usages': [
+            {
+                'subtitle': 'Spread `n` copies by a given spacing',
+                'body': ['line_of(spacing, <n>, <p1=>) ...']
+            },
+            {
+                'subtitle': 'Spread copies every given spacing along the line',
+                'body': ['line_of(spacing, <l=>, <p1=>) ...']
+            },
+            {
+                'subtitle': 'Spread `n` copies along the length of the line',
+                'body': ['line_of(<n=>, <l=>, <p1=>) ...']
+            },
+            {
+                'subtitle': 'Spread `n` copies along the line from `p1` to `p2`',
+                'body': ['line_of(<n=>, <p1=>, <p2=>) ...']
+            },
+            {
+                'subtitle': 'Spread copies every given spacing, centered along the line from `p1` to `p2`',
+                'body': ['line_of(<spacing>, <p1=>, <p2=>) ...']
+            },
+            {
+                'subtitle': 'As a function',
+                'body': [
+                    'pts = line_of(<spacing>, <n>, <p1=>);',
+                    'pts = line_of(<spacing>, <l=>, <p1=>);',
+                    'pts = line_of(<n=>, <l=>, <p1=>);',
+                    'pts = line_of(<n=>, <p1=>, <p2=>);',
+                    'pts = line_of(<spacing>, <p1=>, <p2=>);'
+                ]
+            }
+        ],
+        'description': [
+            'When called as a function, returns a list of points at evenly spread positions along a line.',
+            'When called as a module, copies `children()` at one or more evenly spread positions along a line.',
+            'By default, the line will be centered at the origin, unless the starting point `p1` is given.',
+            'The line will be pointed towards `RIGHT` (X+) unless otherwise given as a vector in `l`,',
+            '`spacing`, or `p1`/`p2`.',
+        ],
+        'arguments': [
+            'spacing = The vector giving both the direction and spacing distance between each set of copies.',
+            'n = Number of copies to distribute along the line. (Default: 2)',
+            '---',
+            'l = Either the scalar length of the line, or a vector giving both the direction and length of the line.',
+            'p1 = If given, specifies the starting point of the line.',
+            'p2 = If given with `p1`, specifies the ending point of line, and indirectly calculates the line length.'
+        ],
+        'see_also': ['xcopies()', 'ycopies()'],
+        'examples': [
+            ['line_of(10) sphere(d=1);'],
+            ['line_of(10, n=5) sphere(d=1);'],
+            ['line_of([10,5], n=5) sphere(d=1);'],
+            ['line_of(spacing=10, n=6) sphere(d=1);'],
+            ['line_of(spacing=[10,5], n=6) sphere(d=1);'],
+            ['line_of(spacing=10, l=50) sphere(d=1);'],
+            ['line_of(spacing=10, l=[50,30]) sphere(d=1);'],
+            ['line_of(spacing=[10,5], l=50) sphere(d=1);'],
+            ['line_of(l=50, n=4) sphere(d=1);'],
+            ['line_of(l=[50,-30], n=4) sphere(d=1);'],
+            [
+                'line_of(p1=[0,0,0], p2=[5,5,20], n=6) '
+                'cube(size=[3,2,1],center=true);'
+            ],
+            [
+                'line_of(p1=[0,0,0], p2=[5,5,20], spacing=6) '
+                'cube(size=[3,2,1],center=true);'
+            ],
+            [
+                'line_of(l=20, n=3) {',
+                '    cube(size=[1,3,1],center=true);',
+                '    cube(size=[3,1,1],center=true);',
+                '}'
+            ],
+            [
+                'pts = line_of([10,5],n=5);',
+                'move_copies(pts) circle(d=2);'
+            ]
+        ],
+        'children': [
+            {
+                'name': 'Side Effects',
+                'subtitle': '',
+                'body': [
+                    '`$pos` is set to the relative centerpoint of each child copy.',
+                    '`$idx` is set to the index number of each child being copied.'
+                ],
+                'file': 'distributors.scad',
+                'line': 88
+            }
+        ]
+    }
+
+

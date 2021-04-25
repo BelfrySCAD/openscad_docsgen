@@ -99,6 +99,25 @@ class GenericBlock(object):
                 children.append(child)
         return children
 
+    def get_children_by_title(self, title):
+        return [
+            child
+            for child in self.children
+            if child.title == title
+        ]
+
+    def get_data(self):
+        d = {
+            "name": self.title,
+            "subtitle": self.subtitle,
+            "body": self.body,
+            "file": self.origin.file,
+            "line": self.origin.line
+        }
+        if self.children:
+            d["children"] = [child.get_data() for child in self.children]
+        return d
+
     def get_link(self, label=None, currfile="", literalize=True):
         label = label if label is not None else self.subtitle
         if literalize:
@@ -310,6 +329,14 @@ class FileBlock(GenericBlock):
         self.includes = []
         self.common_code = []
 
+    def get_data(self):
+        d = super().get_data()
+        d["includes"] = self.includes
+        d["commoncode"] = self.common_code
+        skip_titles = ["CommonCode", "Includes"]
+        d["children"] = list(filter(lambda x: x["name"] not in skip_titles, d["children"]))
+        return d
+
     def get_link(self, label=None, currfile="", literalize=False):
         label = label if label is not None else self.subtitle
         if literalize:
@@ -435,6 +462,39 @@ class ItemBlock(LabelBlock):
             re.sub(r'\([^\)]*\)', r'()', self.subtitle)
         )
 
+    def get_data(self):
+        d = super().get_data()
+        if self.deprecated:
+            d["deprecated"] = True
+        d["topics"] = self.topics
+        d["aliases"] = self.aliases
+        d["see_also"] = self.see_also
+        d["description"] = [
+            line
+            for item in self.get_children_by_title("Description")
+            for line in item.body
+        ]
+        d["arguments"] = [
+            line
+            for item in self.get_children_by_title("Arguments")
+            for line in item.body
+        ]
+        d["usages"] = [
+            {
+                "subtitle": item.subtitle,
+                "body": item.body
+            }
+            for item in self.get_children_by_title("Usage")
+        ]
+        d["examples"] = [
+            item.body
+            for item in self.children if item.title.startswith("Example")
+        ]
+        skip_titles = ["Alias", "Aliases", "Arguments", "Description", "See Also", "Status", "Topics", "Usage"]
+        d["children"] = list(filter(lambda x: not x["name"].startswith("Example"), d["children"]))
+        d["children"] = list(filter(lambda x: x["name"] not in skip_titles, d["children"]))
+        return d
+
     def get_markdown(self, controller):
         front_blocks = [
             ["Alias"],
@@ -444,6 +504,7 @@ class ItemBlock(LabelBlock):
             ["Usage"]
         ]
         back_blocks = [
+            ["See Also"],
             ["Example"]
         ]
         out = []
@@ -460,6 +521,7 @@ class ImageBlock(GenericBlock):
         self.meta = meta
         self.image_num = 0
         self.image_url = None
+        self.raw_script = []
         self.docs_dir = docs_dir
         self.image_req = None
 
@@ -489,13 +551,12 @@ class ImageBlock(GenericBlock):
         if "NORENDER" in meta:
             return
 
-        if (
-            parent.title not in ["File", "LibFile", "Module", "Function&Module"]
-            and "3D" not in meta
-            and "2D" not in meta
-            and "Spin" not in meta
-            and "Anim" not in meta
-        ):
+        show_img = (
+            parent.title not in ("File", "LibFile", "Module", "Function&Module")
+            and not any(x in meta for x in ("2D", "3D", "Spin", "Anim"))
+        )
+        if show_img:
+            self.raw_script = self.body
             return
 
         file_base = os.path.splitext(fileblock.subtitle.strip())[0]
@@ -508,6 +569,7 @@ class ImageBlock(GenericBlock):
                 script_lines.append(line.strip()[2:])
             else:
                 script_lines.append(line)
+        self.raw_script = script_lines
         self.image_req = imgmgr.new_request(
             self.origin.file, self.origin.line,
             os.path.join(self.docs_dir, self.image_url),
@@ -515,6 +577,12 @@ class ImageBlock(GenericBlock):
             starting_cb=self._img_proc_start,
             completion_cb=self._img_proc_done
         )
+
+    def get_data(self):
+        d = super().get_data()
+        d["script"] = self.raw_script
+        d["imgurl"] = self.image_url
+        return d
 
     def _img_proc_start(self, req):
         print("  {}... ".format(os.path.basename(self.image_url)), end='')
@@ -551,6 +619,7 @@ class ImageBlock(GenericBlock):
         out = []
         if "Hide" in self.meta:
             return out
+        out.append("<br/>")
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         out.append("")
         if "NORENDER" not in self.meta and self.image_url:
@@ -633,9 +702,10 @@ class DocsGenParser(object):
     RCFILE = ".openscad_gendocs_rc"
     HASHFILE = ".source_hashes"
 
-    def __init__(self, docs_dir="docs", strict=False):
+    def __init__(self, docs_dir="docs", strict=False, quiet=False):
         self.docs_dir = docs_dir.rstrip("/")
         self.strict = strict
+        self.quiet = quiet
         self.file_blocks = []
         self.curr_file_block = None
         self.curr_section = None
@@ -645,7 +715,7 @@ class DocsGenParser(object):
         self.ignored_files = {}
         self.priority_files = []
         self.items_by_name = {}
-        self.reset_header_defs()
+        self._reset_header_defs()
         self.read_hashes()
 
     def _sha256sum(self, filename):
@@ -661,6 +731,8 @@ class DocsGenParser(object):
         return h.hexdigest()
 
     def read_hashes(self):
+        """Reads all known file hash values from the hashes file.
+        """
         self.file_hashes = {}
         hashfile = os.path.join(self.docs_dir, self.HASHFILE)
         if os.path.isfile(hashfile):
@@ -674,6 +746,10 @@ class DocsGenParser(object):
                 self.file_hashes = {}
 
     def matches_hash(self, filename):
+        """Returns True if the given file matches it's recorded hash value.
+        Updates the hash value in memory for the file if it doesn't match.
+        Does NOT save hash values to disk.
+        """
         newhash = self._sha256sum(filename)
         if filename not in self.file_hashes:
             self.file_hashes[filename] = newhash
@@ -685,13 +761,15 @@ class DocsGenParser(object):
         return True
 
     def write_hashes(self):
+        """Writes out all known hash values.
+        """
         hashfile = os.path.join(self.docs_dir, self.HASHFILE)
         os.makedirs(os.path.dirname(hashfile), exist_ok=True)
         with open(hashfile, "w") as f:
             for filename, hashstr in self.file_hashes.items():
                 f.write("{}|{}\n".format(filename, hashstr))
 
-    def reset_header_defs(self):
+    def _reset_header_defs(self):
         self.header_defs = {
             # BlockHeader:   (parenttype, nodetype, extras, callback)
             'Status':        ( ItemBlock, LabelBlock, None, self._status_block_cb ),
@@ -919,17 +997,214 @@ class DocsGenParser(object):
 
         return line_num
 
+    def get_indexed_names(self):
+        """Returns the list of all indexable function/module/constants  by name, in alphabetical order.
+        """
+        lst = sorted(self.items_by_name.keys())
+        for item in lst:
+            yield item
+
+    def get_indexed_data(self, name):
+        """Given the name of an indexable function/module/constant, returns the parsed data dictionary for that item's documentation.
+
+        Example Results
+        ---------------
+        {
+            "name": "Function&Module",
+            "subtitle": "foobar()",
+            "body": [],
+            "file": "foobar.scad",
+            "line": 23,
+            "topics": ["Testing", "Metasyntactic"],
+            "aliases": ["foob()", "feeb()"],
+            "see_also": ["barbaz()", "bazqux()"],
+            "usages": [
+                {
+                    "subtitle": "As function",
+                    "body": [
+                        "val = foobar(a, b, <c>);",
+                        "list = foobar(d, b=);"
+                    ]
+                }, {
+                    "subtitle": "As module",
+                    "body": [
+                        "foobar(a, b, <c>);",
+                        "foobar(d, b=);"
+                    ]
+                }
+            ],
+            "description": [
+                "When called as a function, this returns the foo of bar.",
+                "When called as a module, renders a foo as modified by bar."
+            ],
+            "arguments": [
+                "a = The a argument.",
+                "b = The b argument.",
+                "c = The c argument.",
+                "d = The d argument."
+            ],
+            "examples": [
+                [
+                    "foobar(5, 7)"
+                ], [
+                    "x = foobar(5, 7);",
+                    "echo(x);"
+                ]
+            ]
+            "children": [
+                {
+                    "name": "Extra Anchors",
+                    "subtitle": "",
+                    "body": [
+                        "\"fee\" = Anchors at the fee position.",
+                        "\"fie\" = Anchors at the fie position."
+                    ]
+                }
+            ]
+        }
+        """
+        if name in self.items_by_name:
+            return self.items_by_name[name].get_data()
+        return {}
+
+    def get_all_data(self):
+        """Gets all the documentation data parsed so far.
+
+        Sample Results
+        ----------
+        [
+            {
+                "name": "LibFile",
+                "subtitle":"foobar.scad",
+                "body": [
+                    "This is the first line of the LibFile body.",
+                    "This is the second line of the LibFile body."
+                ],
+                "includes": [
+                    "include <foobar.scad>",
+                    "include <bazqux.scad>"
+                ],
+                "commoncode": [
+                    "$fa = 2;",
+                    "$fs = 2;"
+                ],
+                "children": [
+                    {
+                        "name": "Section",
+                        "subtitle": "Metasyntactical Calls",  // If subtitle is "", section is just a placeholder.
+                        "body": [
+                            "This is the first line of the body of the Section.",
+                            "This is the second line of the body of the Section."
+                        ],
+                        "children": [
+                            {
+                                "name": "Function&Module",
+                                "subtitle": "foobar()",
+                                "body": [],
+                                "file": "foobar.scad",
+                                "line": 23,
+                                "topics": ["Testing", "Metasyntactic"],
+                                "aliases": ["foob()", "feeb()"],
+                                "see_also": ["barbaz()", "bazqux()"],
+                                "usages": [
+                                    {
+                                        "subtitle": "As function",
+                                        "body": [
+                                            "val = foobar(a, b, <c>);",
+                                            "list = foobar(d, b=);"
+                                        ]
+                                    }, {
+                                        "subtitle": "As module",
+                                        "body": [
+                                            "foobar(a, b, <c>);",
+                                            "foobar(d, b=);"
+                                        ]
+                                    }
+                                ],
+                                "description": [
+                                    "When called as a function, this returns the foo of bar.",
+                                    "When called as a module, renders a foo as modified by bar."
+                                ],
+                                "arguments": [
+                                    "a = The a argument.",
+                                    "b = The b argument.",
+                                    "c = The c argument.",
+                                    "d = The d argument."
+                                ],
+                                "examples": [
+                                    [
+                                        "foobar(5, 7)"
+                                    ],
+                                    [
+                                        "x = foobar(5, 7);",
+                                        "echo(x);"
+                                    ],
+                                    // ... Next Example
+                                ]
+                                "children": [
+                                    {
+                                        "name": "Extra Anchors",
+                                        "subtitle": "",
+                                        "body": [
+                                            "\"fee\" = Anchors at the fee position.",
+                                            "\"fie\" = Anchors at the fie position."
+                                        ]
+                                    }
+                                ]
+                            },
+                            // ... next function/module/constant
+                        ]
+                    },
+                    // ... next section
+                ]
+            },
+            // ... next file
+        ]
+        """
+        return [
+            fblock.get_data()
+            for fblock in self.file_blocks
+        ]
+
     def parse_lines(self, lines, line_num=0, src_file=None):
+        """Parses the given list of strings for documentation comments.
+
+        Parameters
+        ----------
+        lines : list of str
+            The list of strings to parse for documentation comments.
+        line_num : int
+            The current index into the list of strings of the current line to parse.
+        src_file : str
+            The name of the source file that this is from.  This is used just for error reporting.
+            If true, generates images for example scripts, by running them in OpenSCAD.
+        """
         while line_num < len(lines):
             line_num = self._parse_block(lines, line_num, src_file=src_file)
 
     def parse_file(self, filename, commentless=False, images=True, test_only=False, force=False):
+        """Parses the given file for documentation comments.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to parse documentaiton comments from.
+        commentless : bool
+            If true, treat every line of the file as if it starts with '// '.  This is used for reading docsgen config files.
+        images : bool
+            If true, generates images for example scripts, by running them in OpenSCAD.
+        test_only: bool
+            If true, validates example scripts in OpenSCAD, but does not generate images.
+        force : bool
+            If true, forces image generation, even if the source file is unchanged from last run.
+        """
         if filename in self.ignored_files:
             return
-        print("{}:".format(filename))
+        if not self.quiet:
+            print("{}:".format(filename))
         self.curr_file_block = None
         self.curr_section = None
-        self.reset_header_defs()
+        self._reset_header_defs()
         with open(filename, "r") as f:
             if commentless:
                 lines = ["// " + line for line in f.readlines()]
@@ -947,7 +1222,33 @@ class DocsGenParser(object):
                     self.file_hashes.pop(filename)
                 self.write_hashes()
 
+    def parse_files(self, filenames, commentless=False, images=True, test_only=False, force=False):
+        """Parses all of the given files for documentation comments.
+
+        Parameters
+        ----------
+        filenames : list of str
+            The list of filenames to parse documentaiton comments from.
+        commentless : bool
+            If true, treat every line of the files as if they starts with '// '.  This is used for reading docsgen config files.
+        images : bool
+            If true, generates images for example scripts, by running them in OpenSCAD.
+        test_only: bool
+            If true, validates example scripts in OpenSCAD, but does not generate images.
+        force : bool
+            If true, forces image generation, even if the source file is unchanged from last run.
+        """
+        for filename in filenames:
+            self.parse_file(
+                filename,
+                commentless=commentless,
+                images=images,
+                test_only=test_only,
+                force=force
+            )
+
     def dump_tree(self, nodes, pfx="", maxdepth=6):
+        """Dumps debug info to stdout for parsed documentation subtree."""
         if maxdepth <= 0 or not nodes:
             return
         for node in nodes:
@@ -957,9 +1258,17 @@ class DocsGenParser(object):
             self.dump_tree(node.children, pfx=pfx+"  ", maxdepth=maxdepth-1)
 
     def dump_full_tree(self):
+        """Dumps debug info to stdout for all parsed documentation."""
         self.dump_tree(self.file_blocks)
 
     def write_markdown_docsfiles(self, testonly=False):
+        """Generates the .md files for each source file that has been parsed.
+
+        Parameters
+        ----------
+        testonly : bool
+            If True, then all image scripts are parsed in test-only mode, which checks for script errors, but doesn't generate actual images.
+        """
         if testonly:
             for fblock in self.file_blocks:
                 lines = fblock.get_markdown(self)
@@ -968,12 +1277,14 @@ class DocsGenParser(object):
         for fblock in self.file_blocks:
             filename = fblock.subtitle
             outfile = os.path.join(self.docs_dir, filename+".md")
-            print("Writing {}...".format(outfile))
+            if not self.quiet:
+                print("Writing {}...".format(outfile))
             with open(outfile,"w") as f:
                 for line in fblock.get_markdown(self):
                     f.write(line + "\n")
 
     def write_toc_file(self):
+        """Generates the table-of-contents TOC.md file from the parsed documentation"""
         os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
         out = []
         out.append("# Table of Contents")
@@ -996,12 +1307,14 @@ class DocsGenParser(object):
                 ]
                 out.append(ind + (" ".join(item.get_link() for item in items)))
         outfile = os.path.join(self.docs_dir, "TOC.md")
-        print("Writing {}...".format(outfile))
+        if not self.quiet:
+            print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
             for line in out:
                 f.write(line + "\n")
 
     def write_topics_file(self):
+        """Generates the Topics.md file from the parsed documentation."""
         os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
         index_by_letter = {}
         for file_block in self.file_blocks:
@@ -1059,12 +1372,14 @@ class DocsGenParser(object):
                     )
                 out.append("")
         outfile = os.path.join(self.docs_dir, "Topics.md")
-        print("Writing {}...".format(outfile))
+        if not self.quiet:
+            print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
             for line in out:
                 f.write(line + "\n")
 
     def write_index_file(self):
+        """Generates the alphabetical function/module/constant Index.md file from the parsed documentation."""
         os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
         unsorted_items = []
         for file_block in self.file_blocks:
@@ -1108,12 +1423,14 @@ class DocsGenParser(object):
                 )
             out.append("")
         outfile = os.path.join(self.docs_dir, "Index.md")
-        print("Writing {}...".format(outfile))
+        if not self.quiet:
+            print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
             for line in out:
                 f.write(line + "\n")
 
     def write_cheatsheet_file(self):
+        """Generates the CheatSheet.md file from the parsed documentation."""
         os.makedirs(self.docs_dir, mode=0x744, exist_ok=True)
         out = []
         out.append("# The BOSL2 Cheat Sheet")
@@ -1170,7 +1487,8 @@ class DocsGenParser(object):
                     out.append(line)
             out.append("")
         outfile = os.path.join(self.docs_dir, "CheatSheet.md")
-        print("Writing {}...".format(outfile))
+        if not self.quiet:
+            print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
             for line in out:
                 f.write(line + "\n")

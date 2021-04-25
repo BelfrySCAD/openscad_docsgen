@@ -21,7 +21,8 @@ def processFiles(
     gen_topics=False,
     gen_cheat=False,
     report=False,
-    dump_tree=False
+    dump_tree=False,
+    quiet=False
 ):
     fail = False
     for infile in files:
@@ -37,14 +38,13 @@ def processFiles(
     if fail:
         sys.exit(-1)
 
-    docsgen = DocsGenParser(strict=strict)
-    for infile in files:
-        docsgen.parse_file(
-            infile,
-            images=gen_imgs and gen_md,
-            test_only=test_only,
-            force=force
-        )
+    docsgen = DocsGenParser(strict=strict, quiet=quiet)
+    docsgen.parse_files(
+        files, infile,
+        images=gen_imgs and gen_md,
+        test_only=test_only,
+        force=force
+    )
 
     if not test_only and gen_md:
         docsgen.write_markdown_docsfiles()
@@ -71,6 +71,8 @@ def main():
                         help='The directory to put generated documentation in.')
     parser.add_argument('-T', '--test-only', action="store_true",
                         help="If given, don't generate images, but do try executing the scripts.")
+    parser.add_argument('-q', '--quiet', action="store_true",
+                        help="Suppress printing of progress data.")
     parser.add_argument('-S', '--strict', action="store_true",
                         help="If given, require File/LibFile and Section headers.")
     parser.add_argument('-f', '--force', action="store_true",
@@ -109,6 +111,7 @@ def main():
             gen_cheat=args.gen_cheat,
             report=args.report,
             dump_tree=args.dump_tree
+            quiet=args.quiet
         )
 
     except DocsGenException as e:
