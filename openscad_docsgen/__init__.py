@@ -40,11 +40,13 @@ def processFiles(
 
     docsgen = DocsGenParser(strict=strict, quiet=quiet)
     docsgen.parse_files(
-        files, infile,
+        files, False,
         images=gen_imgs and gen_md,
         test_only=test_only,
         force=force
     )
+    if dump_tree:
+        docsgen.dump_full_tree()
 
     if not test_only and gen_md:
         docsgen.write_markdown_docsfiles()
@@ -57,8 +59,6 @@ def processFiles(
     if gen_index:
         docsgen.write_cheatsheet_file()
 
-    if dump_tree:
-        docsgen.dump_full_tree()
     if report:
         errorlog.write_report()
     if errorlog.has_errors:
@@ -110,7 +110,7 @@ def main():
             gen_topics=args.gen_topics,
             gen_cheat=args.gen_cheat,
             report=args.report,
-            dump_tree=args.dump_tree
+            dump_tree=args.dump_tree,
             quiet=args.quiet
         )
 
