@@ -620,6 +620,7 @@ class ImageBlock(GenericBlock):
         if "Hide" in self.meta:
             return out
         out.append("<br/>")
+        out.append("")
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         out.append("")
         if "NORENDER" not in self.meta and self.image_url:
