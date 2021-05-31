@@ -23,7 +23,7 @@ class ImageRequest(object):
     _vpr_re = re.compile(r'VPR=\[([^]]+)\]')
     _vpd_re = re.compile(r'VPD=([0-9]+)')
 
-    def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None):
+    def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False):
         self.src_file = src_file
         self.src_line = src_line
         self.image_file = image_file
@@ -31,6 +31,7 @@ class ImageRequest(object):
         self.script_lines = script_lines
         self.completion_cb = completion_cb
         self.starting_cb = starting_cb
+        self.verbose = verbose
 
         self.render_mode = RenderMode.preview
         self.imgsize = (320, 240)
@@ -143,10 +144,10 @@ class ImageManager(object):
     def purge_requests(self):
         self.requests = []
 
-    def new_request(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None):
+    def new_request(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False):
         if "NORENDER" in image_meta:
             raise Exception("Cannot render scripts marked NORENDER")
-        req = ImageRequest(src_file, src_line, image_file, script_lines, image_meta, starting_cb, completion_cb)
+        req = ImageRequest(src_file, src_line, image_file, script_lines, image_meta, starting_cb, completion_cb, verbose=verbose)
         self.requests.append(req)
         return req
 
@@ -196,7 +197,8 @@ class ImageManager(object):
                 show_edges=req.show_edges,
                 show_axes=req.show_axes,
                 render_mode=render_mode,
-                hard_warnings=no_vp
+                hard_warnings=no_vp,
+                verbose=req.verbose
             )
             osc.run()
             osc.warnings = [line for line in osc.warnings if "Viewall and autocenter disabled" not in line]
