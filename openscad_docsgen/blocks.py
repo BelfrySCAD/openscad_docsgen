@@ -599,17 +599,18 @@ class ImageBlock(GenericBlock):
         pfx = "     "
         out = "Failed OpenSCAD script:\n"
         out += pfx + "Image: {}\n".format( os.path.basename(req.image_file) )
-        for line in req.echos:
+        out += pfx + "cmd-line = {}\n".format(" ".join(req.cmdline))
+        for line in req.stdout:
             out += pfx + line + "\n"
-        for line in req.warnings:
+        for line in req.stderr:
             out += pfx + line + "\n"
-        for line in req.errors:
-            out += pfx + line + "\n"
+        out += pfx + "Return code = {}\n".format(req.return_code)
         out += pfx + ("-=" * 32) + "-\n"
         for line in req.script_lines:
             out += pfx + line + "\n"
         out += pfx + ("=-" * 32) + "="
         print("", file=sys.stderr)
+        sys.stderr.flush()
         errorlog.add_entry(req.src_file, req.src_line, out, ErrorLog.FAIL)
 
     def get_markdown(self, controller):
@@ -675,6 +676,7 @@ class ErrorLog(object):
         self.errlist.append( (file, line, msg, level) )
         self.badfiles[file] = 1
         print("!! {} at {}:{}: {}".format(level.upper(), file, line, msg) , file=sys.stderr)
+        sys.stderr.flush()
         if level == self.FAIL:
             self.has_errors = True
 
@@ -744,6 +746,7 @@ class DocsGenParser(object):
                         self.file_hashes[filename] = hashstr
             except ValueError as e:
                 print("Corrrupt hashes file.  Ignoring.", file=sys.stderr)
+                sys.stderr.flush()
                 self.file_hashes = {}
 
     def matches_hash(self, filename):

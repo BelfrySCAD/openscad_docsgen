@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "1.4.3"
+VERSION = "1.4.4"
 
 
 with open('README.rst') as f:
@@ -13,7 +13,7 @@ data_files = []
 setup(
     name='openscad_docsgen',
     version=VERSION,
-    description='A processor to generate Markdown code documentation from OpenSCAD source comments.',
+    description='A processor to generate Markdown code documentation with images from OpenSCAD source comments.',
     long_description=LONG_DESCR,
     long_description_content_type='text/x-rst',
     author='Revar Desmera',
@@ -43,7 +43,7 @@ setup(
     install_requires=[
         'setuptools',
         'Pillow>=7.2.0',
-        'openscad_runner>=1.0.8'
+        'openscad_runner>=1.0.10'
     ],
     data_files=data_files,
     entry_points = {
