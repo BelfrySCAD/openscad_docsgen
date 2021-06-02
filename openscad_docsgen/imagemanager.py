@@ -113,6 +113,10 @@ class ImageRequest(object):
         self.complete = False
         self.status = "INCOMPLETE"
         self.success = False
+        self.cmdline = []
+        self.return_code = None
+        self.stdout = []
+        self.stderr = []
         self.echos = []
         self.warnings = []
         self.errors = []
@@ -126,6 +130,10 @@ class ImageRequest(object):
         self.status = status
         if osc:
             self.success = osc.success
+            self.cmdline = osc.cmdline
+            self.return_code = osc.return_code
+            self.stdout = osc.stdout
+            self.stderr = osc.stderr
             self.echos = osc.echos
             self.warnings = osc.warnings
             self.errors = osc.errors
