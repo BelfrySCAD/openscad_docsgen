@@ -49,6 +49,7 @@ class ImageRequest(object):
         m = self._size_re.search(image_meta)
         if m:
             self.imgsize = (int(m.group(1)), int(m.group(2)))
+            scale = 1.0
         elif "Small" in image_meta:
             scale = 0.75
         elif "Med" in image_meta:
