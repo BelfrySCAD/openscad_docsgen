@@ -47,6 +47,7 @@ class ImageRequest(object):
             self.render_mode = RenderMode.render
 
         m = self._size_re.search(image_meta)
+        scale = 1.0
         if m:
             self.imgsize = (int(m.group(1)), int(m.group(2)))
         elif "Small" in image_meta:
@@ -57,8 +58,6 @@ class ImageRequest(object):
             scale = 2.0
         elif "Huge" in image_meta:
             scale = 2.5
-        else:
-            scale = 1.0
         self.imgsize = [scale*x for x in self.imgsize]
 
         has_vp_splat = False
