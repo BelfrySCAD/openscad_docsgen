@@ -243,6 +243,7 @@ class BulletListBlock(GenericBlock):
     def get_markdown(self, controller):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
+        out.append("")
         for line in self.body:
             out.append("- {}".format(self.parse_links(line, controller)))
         out.append("")
@@ -317,6 +318,7 @@ class TableBlock(GenericBlock):
             tables.append(table)
         out = []
         out.append(mkdn_esc("**{}:** {}".format(self.title, self.subtitle)))
+        out.append("")
         for table in tables:
             out.extend(table)
             out.append("")

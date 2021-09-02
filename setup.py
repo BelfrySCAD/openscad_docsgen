@@ -19,7 +19,7 @@ setup(
     author='Revar Desmera',
     author_email='revarbat@gmail.com',
     url='https://github.com/revarbat/openscad_docsgen',
-    download_url='https://github.com/revarbat/openscad_docsgen/archive/openscad_docsgen_v{}.zip'.format(VERSION),
+    download_url='https://github.com/revarbat/openscad_docsgen/archive/refs/tags/v{}.zip'.format(VERSION),
     packages=['openscad_docsgen'],
     license='MIT License',
     classifiers=[
@@ -43,7 +43,7 @@ setup(
     install_requires=[
         'setuptools',
         'Pillow>=7.2.0',
-        'openscad_runner>=1.0.10'
+        'openscad_runner>=1.0.11'
     ],
     data_files=data_files,
     entry_points = {
