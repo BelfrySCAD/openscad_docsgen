@@ -38,7 +38,7 @@ def processFiles(
     if fail:
         sys.exit(-1)
 
-    docsgen = DocsGenParser(strict=strict, quiet=quiet)
+    docsgen = DocsGenParser(docs_dir=docs_dir, strict=strict, quiet=quiet)
     docsgen.parse_files(
         files, False,
         images=gen_imgs and gen_md,
