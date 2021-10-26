@@ -703,7 +703,7 @@ errorlog = ErrorLog()
 
 
 class DocsGenParser(object):
-    _header_pat = re.compile("^// ([A-Z][A-Za-z0-9_&-]*( ?[A-Z][A-Za-z0-9_&-]*)?)(\([^)]*\))?:( .*)?$")
+    _header_pat = re.compile(r"^// ([A-Z][A-Za-z0-9_&-]*( ?[A-Z][A-Za-z0-9_&-]*)?)(\([^)]*\))?:( .*)?$")
     RCFILE = ".openscad_gendocs_rc"
     HASHFILE = ".source_hashes"
 
