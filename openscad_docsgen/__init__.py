@@ -56,7 +56,7 @@ def processFiles(
         docsgen.write_index_file()
     if gen_topics:
         docsgen.write_topics_file()
-    if gen_index:
+    if gen_cheat:
         docsgen.write_cheatsheet_file()
 
     if report:
