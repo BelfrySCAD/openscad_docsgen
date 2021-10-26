@@ -20,6 +20,7 @@ def processFiles(
     gen_index=False,
     gen_topics=False,
     gen_cheat=False,
+    project_name=None,
     report=False,
     dump_tree=False,
     quiet=False
@@ -57,7 +58,7 @@ def processFiles(
     if gen_topics:
         docsgen.write_topics_file()
     if gen_cheat:
-        docsgen.write_cheatsheet_file()
+        docsgen.write_cheatsheet_file(project_name)
 
     if report:
         errorlog.write_report()
@@ -89,6 +90,8 @@ def main():
                         help='If given, generate TOC.md table of contents file.')
     parser.add_argument('-c', '--gen-cheat', action="store_true",
                         help='If given, generate CheatSheet.md file with all Usage lines.')
+    parser.add_argument('-P', '--project-name',
+                        help='If given, sets the name of the project to be shown in titles.')              
     parser.add_argument('-r', '--report', action="store_true",
                         help='If given, write all warnings and errors to docsgen_report.json')
     parser.add_argument('-d', '--dump-tree', action="store_true",
@@ -109,6 +112,7 @@ def main():
             gen_index=args.gen_index,
             gen_topics=args.gen_topics,
             gen_cheat=args.gen_cheat,
+            project_name=args.project_name,
             report=args.report,
             dump_tree=args.dump_tree,
             quiet=args.quiet
