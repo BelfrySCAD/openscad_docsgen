@@ -703,7 +703,7 @@ errorlog = ErrorLog()
 
 
 class DocsGenParser(object):
-    _header_pat = re.compile("^// ([A-Z][A-Za-z0-9_&-]*( ?[A-Z][A-Za-z0-9_&-]*)?)(\([^)]*\))?:( .*)?$")
+    _header_pat = re.compile(r"^// ([A-Z][A-Za-z0-9_&-]*( ?[A-Z][A-Za-z0-9_&-]*)?)(\([^)]*\))?:( .*)?$")
     RCFILE = ".openscad_gendocs_rc"
     HASHFILE = ".source_hashes"
 
@@ -1438,11 +1438,14 @@ class DocsGenParser(object):
             for line in out:
                 f.write(line + "\n")
 
-    def write_cheatsheet_file(self):
+    def write_cheatsheet_file(self, project_name=None):
         """Generates the CheatSheet.md file from the parsed documentation."""
         os.makedirs(self.docs_dir, mode=0o744, exist_ok=True)
         out = []
-        out.append("# The BOSL2 Cheat Sheet")
+        if project_name is None:
+            out.append("# Cheat Sheet")
+        else:
+            out.append("# The {} Cheat Sheet".format(project_name))
         out.append("")
         pri_blocks = self._files_prioritized()
         for file_block in pri_blocks:
