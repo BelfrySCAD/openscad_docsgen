@@ -179,7 +179,7 @@ class GenericBlock(object):
                 out.append(self.parse_links(line, controller))
         return out
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         out.extend(self.get_markdown_body(controller))
@@ -208,7 +208,7 @@ class TopicsBlock(LabelBlock):
         self.topics = [x.strip() for x in subtitle.split(",")]
         parent.topics = self.topics
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         links = ", ".join("[{0}](Topics#{1})".format(mkdn_esc(topic),header_link(topic)) for topic in self.topics)
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), links))
@@ -220,7 +220,7 @@ class SeeAlsoBlock(LabelBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         names = [name.strip() for name in self.subtitle.split(",")]
         items = []
         for name in names:
@@ -250,7 +250,7 @@ class BulletListBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         out.append("")
@@ -264,7 +264,7 @@ class NumberedListBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         out = []
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         out.append("")
@@ -286,7 +286,7 @@ class TableBlock(GenericBlock):
         if tnum >= len(self.header_sets):
             raise DocsGenException(title, "More tables than header_sets, while declaring block:")
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         prev_tnum = -1
         tnum = 0
         table = []
@@ -382,18 +382,18 @@ class FileBlock(GenericBlock):
             out.append("")
         return out
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         out = []
         out.append("# {}".format(mkdn_esc(str(self))))
         out.extend(self.get_markdown_body(controller))
         out.append("")
         for child in self.children:
             if not isinstance(child, SectionBlock):
-                out.extend(child.get_markdown(controller))
+                out.extend(child.get_markdown(controller, pure_md=pure_md))
         out.extend(self.get_toc_lines())
         for child in self.children:
             if isinstance(child, SectionBlock):
-                out.extend(child.get_markdown(controller))
+                out.extend(child.get_markdown(controller, pure_md=pure_md))
         return out
 
 
@@ -403,7 +403,7 @@ class IncludesBlock(GenericBlock):
         if parent:
             parent.includes.extend(body)
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         out = []
         if self.body:
             out.append("To use, add the following lines to the beginning of your file:")
@@ -431,7 +431,7 @@ class SectionBlock(GenericBlock):
                 out.append(" " * indent + child_link)
         return out
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         """
         Return the markdown for this section. This includes the section
         heading and the markdown for the children.
@@ -445,7 +445,7 @@ class SectionBlock(GenericBlock):
             out.append("")
         cnt = 0
         for child in self.children:
-            chout = child.get_markdown(controller)
+            chout = child.get_markdown(controller, pure_md=pure_md)
             if chout:
                 cnt += 1
             if cnt > 1:
@@ -507,7 +507,7 @@ class ItemBlock(LabelBlock):
         d["children"] = list(filter(lambda x: x["name"] not in skip_titles, d["children"]))
         return d
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         front_blocks = [
             ["Alias"],
             ["Aliases"],
@@ -523,7 +523,7 @@ class ItemBlock(LabelBlock):
         out.append("### {}".format(mkdn_esc(str(self))))
         out.append("")
         for child in self.sort_children(front_blocks, back_blocks):
-            out.extend(child.get_markdown(controller))
+            out.extend(child.get_markdown(controller, pure_md=pure_md))
         return out
 
 
@@ -628,40 +628,71 @@ class ImageBlock(GenericBlock):
         sys.stderr.flush()
         errorlog.add_entry(req.src_file, req.src_line, out, ErrorLog.FAIL)
 
-    def get_markdown(self, controller):
+    def get_markdown(self, controller, pure_md=False):
         fileblock = self.parent
         while fileblock.parent:
             fileblock = fileblock.parent
         out = []
         if "Hide" in self.meta:
             return out
-        out.append("<br/>")
+
+        #Add Example/Figure title
+        if not pure_md:
+            out.append("<br/>")
         out.append("")
         out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
         out.append("")
-        if "NORENDER" not in self.meta and self.image_url:
-            out.append(
-                '<img align="left" alt="{0} {1}" src="{2}">'
-                .format(
-                    mkdn_esc(self.parent.subtitle),
-                    mkdn_esc(self.title),
-                    self.image_url_rel
-                )
-            )
-            out.append("")
+
         if "Figure" in self.title:
-            out.append('<br clear="all" />')
+            out.extend(self._get_image_markdown(pure_md))
+            if not pure_md:
+                out.append('<br clear="all" />')
             out.append("")
         else:
+            # Example.
+            # In example in pure markdown image is after code block
+            if not pure_md:
+                out.extend(self._get_image_markdown(pure_md))
             if self.image_req and self.image_req.script_under:
-                out.append('<br clear="all" />')
+                if not pure_md:
+                    out.append('<br clear="all" />')
                 out.append("")
-            out.extend(["    " + line for line in fileblock.includes])
-            out.extend(["    " + line for line in self.body if not line.strip().startswith("--")])
+            #Currently Pure markdown used fenced code. This should probably be configurable
+            out.extend(self._get_example_markdown(fileblock, fence_code=pure_md))
             out.append("")
             if not self.image_req or not self.image_req.script_under:
-                out.append('<br clear="all" />')
+                if not pure_md:
+                    out.append('<br clear="all" />')
                 out.append("")
+            if pure_md:
+                out.extend(self._get_image_markdown(pure_md))
+        return out
+
+    def _get_image_markdown(self, pure_md=False):
+        out = []
+        if "NORENDER" not in self.meta and self.image_url:
+            img_data = [mkdn_esc(self.parent.subtitle),
+                        mkdn_esc(self.title),
+                        self.image_url_rel]
+            if pure_md:
+                out.append('![{0} {1}]({2} "{0} {1}")'.format(*img_data))
+            else:
+                out.append(
+                    '<img align="left" alt="{0} {1}" src="{2}">'.format(*img_data)
+                )
+            out.append("")
+        return out
+
+    def _get_example_markdown(self, fileblock, fence_code=False):
+        out = []
+        if fence_code:
+            out.append("``` {.C linenos=True}")
+            out.extend([line for line in fileblock.includes])
+            out.extend([line for line in self.body if not line.strip().startswith("--")])
+            out.append("```")
+        else:
+            out.extend(["    " + line for line in fileblock.includes])
+            out.extend(["    " + line for line in self.body if not line.strip().startswith("--")])
         return out
 
 
@@ -720,11 +751,12 @@ class DocsGenParser(object):
     RCFILE = ".openscad_gendocs_rc"
     HASHFILE = ".source_hashes"
 
-    def __init__(self, docs_dir="docs", strict=False, quiet=False, md_in_links=False):
+    def __init__(self, docs_dir="docs", strict=False, quiet=False, md_in_links=False, pure_md_images=False):
         self.docs_dir = docs_dir.rstrip("/")
         self.strict = strict
         self.quiet = quiet
         self.md_in_links = md_in_links
+        self.pure_md_images = pure_md_images
         self.file_blocks = []
         self.curr_file_block = None
         self.curr_section = None
@@ -1292,7 +1324,7 @@ class DocsGenParser(object):
         """
         if testonly:
             for fblock in self.file_blocks:
-                lines = fblock.get_markdown(self)
+                lines = fblock.get_markdown(self, pure_md=self.pure_md_images)
             return
         os.makedirs(self.docs_dir, mode=0o744, exist_ok=True)
         for fblock in self.file_blocks:
@@ -1304,7 +1336,7 @@ class DocsGenParser(object):
             if not os.path.exists(outdir):
                 os.makedirs(outdir, mode=0o744, exist_ok=True)
             with open(outfile,"w") as f:
-                for line in fblock.get_markdown(self):
+                for line in fblock.get_markdown(self, pure_md=self.pure_md_images):
                     f.write(line + "\n")
 
     def write_toc_file(self):
