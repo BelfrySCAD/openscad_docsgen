@@ -51,8 +51,18 @@ def header_link(name):
     refpat = re.compile("[^a-z0-9_ -]")
     return refpat.sub("", name.lower()).replace(" ", "-")
 
+class OriginInfo:
 
-OriginInfo = namedtuple('OriginInfo', 'file line')
+    def __init__(self, file, line, md_in_links):
+        self.file = file
+        self.line = line
+        self._md_in_links = md_in_links
+
+    @property
+    def md_file(self):
+        if self._md_in_links:
+            return self.file+".md"
+        return self.file
 
 
 class DocsGenException(Exception):
@@ -126,7 +136,7 @@ class GenericBlock(object):
             label = mkdn_esc(label)
         return "[{0}]({1}#{2})".format(
             label,
-            self.origin.file if self.origin.file != currfile else "",
+            self.origin.md_file if self.origin.file != currfile else "",
             header_link(str(self))
         )
 
@@ -345,7 +355,7 @@ class FileBlock(GenericBlock):
             label = "`{0}`".format(label)
         else:
             label = mkdn_esc(label)
-        return "[{0}]({1})".format(label, self.origin.file)
+        return "[{0}]({1})".format(label, self.origin.md_file)
 
     def get_toc_lines(self, indent=4):
         sections = [
@@ -523,6 +533,7 @@ class ImageBlock(GenericBlock):
         self.meta = meta
         self.image_num = 0
         self.image_url = None
+        self.image_url_rel = None
         self.raw_script = []
         self.docs_dir = docs_dir
         self.image_req = None
@@ -561,8 +572,10 @@ class ImageBlock(GenericBlock):
             self.raw_script = self.body
             return
 
-        file_base = os.path.splitext(fileblock.subtitle.strip())[0]
-        self.image_url = os.path.join("images", file_base, proposed_name)
+        file_dir, file_name = os.path.split(fileblock.origin.file.strip())
+        file_base = os.path.splitext(file_name)[0]
+        self.image_url = os.path.join(file_dir, "images", file_base, proposed_name)
+        self.image_url_rel = os.path.join("images", file_base, proposed_name)
         script_lines = []
         script_lines.extend(fileblock.includes)
         script_lines.extend(fileblock.common_code)
@@ -632,7 +645,7 @@ class ImageBlock(GenericBlock):
                 .format(
                     mkdn_esc(self.parent.subtitle),
                     mkdn_esc(self.title),
-                    self.image_url
+                    self.image_url_rel
                 )
             )
             out.append("")
@@ -707,10 +720,11 @@ class DocsGenParser(object):
     RCFILE = ".openscad_gendocs_rc"
     HASHFILE = ".source_hashes"
 
-    def __init__(self, docs_dir="docs", strict=False, quiet=False):
+    def __init__(self, docs_dir="docs", strict=False, quiet=False, md_in_links=False):
         self.docs_dir = docs_dir.rstrip("/")
         self.strict = strict
         self.quiet = quiet
+        self.md_in_links = md_in_links
         self.file_blocks = []
         self.curr_file_block = None
         self.curr_section = None
@@ -722,6 +736,7 @@ class DocsGenParser(object):
         self.items_by_name = {}
         self._reset_header_defs()
         self.read_hashes()
+        
 
     def _sha256sum(self, filename):
         h = hashlib.sha256()
@@ -894,7 +909,7 @@ class DocsGenParser(object):
 
         try:
             parent = self.curr_parent
-            origin = OriginInfo(src_file, hdr_line_num+1)
+            origin = OriginInfo(src_file, hdr_line_num+1, self.md_in_links)
             if title == "DefineHeader":
                 self._define_blocktype(subtitle, meta)
             elif title == "IgnoreFiles":
@@ -1282,7 +1297,7 @@ class DocsGenParser(object):
         os.makedirs(self.docs_dir, mode=0o744, exist_ok=True)
         for fblock in self.file_blocks:
             filename = fblock.subtitle
-            outfile = os.path.join(self.docs_dir, filename+".md")
+            outfile = os.path.join(self.docs_dir, fblock.origin.file+".md")
             if not self.quiet:
                 print("Writing {}...".format(outfile))
             outdir = os.path.dirname(outfile)

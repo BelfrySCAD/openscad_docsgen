@@ -23,7 +23,8 @@ def processFiles(
     project_name=None,
     report=False,
     dump_tree=False,
-    quiet=False
+    quiet=False,
+    md_in_links=False
 ):
     fail = False
     for infile in files:
@@ -39,7 +40,7 @@ def processFiles(
     if fail:
         sys.exit(-1)
 
-    docsgen = DocsGenParser(docs_dir=docs_dir, strict=strict, quiet=quiet)
+    docsgen = DocsGenParser(docs_dir=docs_dir, strict=strict, quiet=quiet, md_in_links=md_in_links)
     docsgen.parse_files(
         files, False,
         images=gen_imgs and gen_md,
@@ -96,6 +97,9 @@ def main():
                         help='If given, write all warnings and errors to docsgen_report.json')
     parser.add_argument('-d', '--dump-tree', action="store_true",
                         help='If given, dumps the documentation tree for debugging.')
+    parser.add_argument('--md-in-links', action="store_true",
+                        help=('If given, links to markdown pages will end with .md, this is'
+                              ' not needed if using in a GitHub wiki'))
     parser.add_argument('srcfile', nargs='+', help='List of input source files.')
     args = parser.parse_args()
 
@@ -115,7 +119,8 @@ def main():
             project_name=args.project_name,
             report=args.report,
             dump_tree=args.dump_tree,
-            quiet=args.quiet
+            quiet=args.quiet,
+            md_in_links=args.md_in_links
         )
 
     except DocsGenException as e:
