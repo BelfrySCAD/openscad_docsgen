@@ -211,7 +211,7 @@ class TopicsBlock(LabelBlock):
     def get_markdown(self, controller):
         links = ", ".join("[{0}](Topics#{1})".format(mkdn_esc(topic),header_link(topic)) for topic in self.topics)
         out = []
-        out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(links)))
+        out.append("**{}:** {}".format(mkdn_esc(self.title), links))
         out.append("")
         return out
 
@@ -231,9 +231,9 @@ class SeeAlsoBlock(LabelBlock):
                 item = controller.items_by_name[name]
                 if item is not self.parent:
                     items.append( item )
-        links = ", ".join( item.get_link(currfile=self.origin.file) for item in items )
+        links = ", ".join( item.get_link(currfile=self.origin.file, literalize=False) for item in items )
         out = []
-        out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(links)))
+        out.append("**{}:** {}".format(mkdn_esc(self.title), links))
         out.append("")
         return out
 
