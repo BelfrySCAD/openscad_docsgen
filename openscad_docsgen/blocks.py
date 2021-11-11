@@ -180,8 +180,9 @@ class GenericBlock(object):
         return out
 
     def get_markdown(self, controller, pure_md=False):
+        sub = self.parse_links(self.subtitle, controller)
         out = []
-        out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(self.subtitle)))
+        out.append("**{}:** {}".format(mkdn_esc(self.title), mkdn_esc(sub)))
         out.extend(self.get_markdown_body(controller))
         out.append("")
         return out

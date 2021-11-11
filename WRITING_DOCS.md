@@ -529,6 +529,7 @@ metadata directives:
 - `Render`: Force full rendering from OpenSCAD, instead of the normal preview.
 - `Edges`: Highlight face edges.
 - `NoAxes`: Hides the axes and scales.
+- `NoScales`: Hides the scale numbers along the axes.
 - `ScriptUnder`: Display script text under image, rather than beside it.
 
 

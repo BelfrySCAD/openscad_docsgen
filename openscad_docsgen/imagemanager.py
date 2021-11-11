@@ -40,6 +40,7 @@ class ImageRequest(object):
         self.frame_ms = 250
         self.show_edges = "Edges" in image_meta
         self.show_axes = "NoAxes" not in image_meta
+        self.show_scales = "NoScales" not in image_meta
         self.orthographic = "Perspective" not in image_meta
         self.script_under = False
 
@@ -203,6 +204,7 @@ class ImageManager(object):
                 view_all=no_vp,
                 show_edges=req.show_edges,
                 show_axes=req.show_axes,
+                show_scales=req.show_scales,
                 render_mode=render_mode,
                 hard_warnings=no_vp,
                 verbose=req.verbose
