@@ -257,4 +257,8 @@ class ImageManager(object):
             return rms <= max_rms
 
 
+image_manager = ImageManager()
+
+
+
 # vim: expandtab tabstop=4 shiftwidth=4 softtabstop=4 nowrap

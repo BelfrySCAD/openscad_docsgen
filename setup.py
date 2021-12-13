@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "1.4.8"
+VERSION = "2.0.2"
 
 
 with open('README.rst') as f:
@@ -43,11 +43,15 @@ setup(
     install_requires=[
         'setuptools',
         'Pillow>=7.2.0',
+        'PyYAML>=6.0',
         'openscad_runner>=1.0.11'
     ],
     data_files=data_files,
     entry_points = {
-        'console_scripts': ['openscad-docsgen=openscad_docsgen:main'],
+        'console_scripts': [
+            'openscad-docsgen=openscad_docsgen:main',
+            'openscad-mdimggen=openscad_docsgen.mdimggen:mdimggen_main',
+        ],
     },
 )
 
