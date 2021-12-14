@@ -2,8 +2,9 @@
 
 from __future__ import print_function
 
-import sys
 import os
+import sys
+import glob
 import os.path
 import argparse
 
@@ -14,7 +15,7 @@ from .target import default_target, target_classes
 
 class Options(object):
     def __init__(self, args):
-        self.files = args.srcfile
+        self.files = args.srcfiles
         self.target_profile = args.target_profile
         self.project_name = args.project_name
         self.docs_dir = args.docs_dir.rstrip("/")
@@ -22,7 +23,7 @@ class Options(object):
         self.force = args.force
         self.strict = args.strict
         self.test_only = args.test_only
-        self.gen_imgs = args.gen_files and not args.no_images
+        self.gen_imgs = not args.no_images
         self.gen_files = args.gen_files
         self.gen_toc = args.gen_toc
         self.gen_index = args.gen_index
@@ -45,10 +46,12 @@ class Options(object):
             docs_dir=self.docs_dir
         )
 
-
 def processFiles(opts):
     docsgen = DocsGenParser(opts)
     # DocsGenParser may change opts settings, based on the _rc file.
+
+    if not opts.files:
+        opts.files = glob.glob("*.scad")
 
     fail = False
     for infile in opts.files:
@@ -125,7 +128,7 @@ def main():
                         help='If given, dumps the documentation tree for debugging.')
     parser.add_argument('-p', '--target-profile', choices=target_classes.keys(), default=default_target,
                         help='Sets the output target profile.  Defaults to "{}"'.format(default_target))
-    parser.add_argument('srcfile', nargs='+', help='List of input source files.')
+    parser.add_argument('srcfiles', nargs='*', help='List of input source files.')
     opts = Options(parser.parse_args())
 
     try:
