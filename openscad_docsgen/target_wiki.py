@@ -181,7 +181,7 @@ class Target_Wiki(object):
 
     def numbered_list_item(self, num, item):
         out = [
-            "{:d}. {}".format(num, item)
+            "{}. {}".format(num, item)
         ]
         return out
 

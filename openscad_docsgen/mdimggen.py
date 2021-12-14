@@ -78,10 +78,9 @@ class MarkdownImageGen(object):
                             fext = "png"
                             if any(x in extyp for x in ("Anim", "Spin")):
                                 fext = "gif"
-                            imgfile = os.path.join(
-                                image_root,
-                                "{}_{}.{}".format(fileroot, imgnum, fext)
-                            )
+                            fname = "{}_{}.{}".format(fileroot, imgnum, fext)
+                            img_rel_url = os.path.join(opts.image_root, fname)
+                            imgfile = os.path.join(opts.docs_dir, img_rel_url)
                             image_manager.new_request(
                                 fileroot+".md", linenum,
                                 imgfile, script, extyp,
@@ -92,7 +91,7 @@ class MarkdownImageGen(object):
                                 out.append("```openscad")
                                 out.extend(script)
                                 out.append("```")
-                            out.append("![Figure {}]({})".format(imgnum, imgfile))
+                            out.append("![Figure {}]({})".format(imgnum, img_rel_url))
                             show_script = True
                             extyp = ""
                         else:

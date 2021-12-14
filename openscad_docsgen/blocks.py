@@ -391,7 +391,7 @@ class SectionBlock(GenericBlock):
             if subsects:
                 out.extend(target.bullet_list_start())
                 for child in subsects:
-                    out.extend(child.get_tocfile_lines(target, currfile=currfile))
+                    out.extend(target.indent_lines(child.get_tocfile_lines(target, currfile=currfile)))
                 out.extend(target.bullet_list_end())
             out.extend(
                 target.indent_lines([
@@ -423,10 +423,10 @@ class SectionBlock(GenericBlock):
         lines = []
         subsects = self.get_children_by_title("Subsection")
         if subsects:
-            out.extend(target.bullet_list_start())
-            for child in subsects:
-                lines.extend(child.get_toc_lines(target, currfile=currfile))
-            out.extend(target.bullet_list_end())
+            lines.extend(target.bullet_list_start())
+            for num, child in enumerate(subsects):
+                lines.extend(child.get_toc_lines(target, currfile=currfile, n="{}.{}".format(n,num+1)))
+            lines.extend(target.bullet_list_end())
         for child in self.get_children_by_title(["Constant","Function","Module","Function&Module"]):
             lines.extend(child.get_toc_lines(target, currfile=currfile))
         out = []
@@ -483,7 +483,7 @@ class SectionBlock(GenericBlock):
         return out
 
 
-class SubSectionBlock(GenericBlock):
+class SubsectionBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
@@ -507,16 +507,16 @@ class SubSectionBlock(GenericBlock):
         out = []
         item = self.get_link(target, label=self.subtitle, currfile=currfile)
         out.extend(target.bullet_list_item(item))
-        out.extend(
-            target.indent_lines([
-                " ".join(
-                    " ".join(child.get_tocfile_lines(target, currfile=currfile))
-                    for child in self.get_children_by_title(
-                        ["Constant","Function","Module","Function&Module"]
+        items = self.get_children_by_title(["Constant","Function","Module","Function&Module"])
+        if items:
+            out.extend(
+                target.indent_lines([
+                    " ".join(
+                        " ".join(child.get_tocfile_lines(target, currfile=currfile))
+                        for child in items
                     )
-                )
-            ])
-        )
+                ])
+            )
         return out
 
     def get_toc_lines(self, target, n=1, currfile=""):
@@ -532,10 +532,11 @@ class SubSectionBlock(GenericBlock):
         if self.subtitle:
             item = self.get_link(target, currfile=currfile)
             out.extend(target.numbered_list_item(n, item))
-            out.extend(target.bullet_list_start())
-            out.extend(target.indent_lines(lines))
-            out.extend(target.bullet_list_end())
-        else:
+            if lines:
+                out.extend(target.bullet_list_start())
+                out.extend(target.indent_lines(lines))
+                out.extend(target.bullet_list_end())
+        elif lines:
             out.extend(target.bullet_list_start())
             out.extend(lines)
             out.extend(target.bullet_list_end())
@@ -709,15 +710,15 @@ class ImageBlock(GenericBlock):
                 script_lines.append(line)
         self.raw_script = script_lines
 
-        san_name = re.sub(r'[^A-Za-z0-9_]', r'', os.path.basename(parent.subtitle.strip()))
+        san_name = re.sub(r'[^A-Za-z0-9_-]', r'', os.path.basename(parent.subtitle.strip().lower().replace(" ","-")))
         file_ext = "gif" if "Spin" in self.meta or "Anim" in self.meta else "png"
-        if parent is None:
-            proposed_name = "{}.{}".format(san_name, file_ext)
-        elif self.title == "Figure":
+        if self.title == "Figure":
             parent.figure_num += 1
             self.image_num = parent.figure_num
             if parent.title in ["File", "LibFile"]:
                 proposed_name = "figure{}.{}".format(self.image_num, file_ext)
+            elif parent.title in ["Section", "Subsection"]:
+                proposed_name = "{}-{}_fig{}.{}".format(parent.title.lower(), san_name, self.image_num, file_ext)
             else:
                 proposed_name = "{}_fig{}.{}".format(san_name, self.image_num, file_ext)
             self.title = "{} {}".format(self.title, self.image_num)
@@ -730,8 +731,8 @@ class ImageBlock(GenericBlock):
 
         file_dir, file_name = os.path.split(fileblock.origin.file.strip())
         file_base = os.path.splitext(file_name)[0]
-        self.image_url = os.path.join(file_dir, "images", file_base, proposed_name)
         self.image_url_rel = os.path.join("images", file_base, proposed_name)
+        self.image_url = os.path.join(file_dir, self.image_url_rel)
 
     def generate_image(self, target):
         self.image_req = None
