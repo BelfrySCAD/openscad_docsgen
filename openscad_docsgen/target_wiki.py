@@ -39,6 +39,13 @@ class Target_Wiki(object):
     def italics(self, txt):
         return "*{}*".format(txt)
 
+    def line_with_break(self, line):
+        return [line + "  "]
+
+    def paragraph(self, lines=[]):
+        lines.append("")
+        return lines
+
     def footnote_marks(self, footnotes):
         out = ""
         for mark, note in footnotes:

@@ -913,12 +913,12 @@ class DocsGenParser(object):
         footmarks = []
         footnotes = {}
         out = []
-        out.append(target.get_link("Table of Contents", file="TOC", literalize=False))
-        out.append(target.get_link("Function Index", file="Index", literalize=False))
-        out.append(target.get_link("Topics Index", file="Topics", literalize=False))
-        out.append(target.get_link("Cheat Sheet", file="CheatSheet", literalize=False))
-        out.append(target.get_link("Tutorials", file="Tutorials", literalize=False))
-        out.append("")
+        out.extend(target.line_with_break(target.get_link("Table of Contents", file="TOC", literalize=False)))
+        out.extend(target.line_with_break(target.get_link("Function Index", file="Index", literalize=False)))
+        out.extend(target.line_with_break(target.get_link("Topics Index", file="Topics", literalize=False)))
+        out.extend(target.line_with_break(target.get_link("Cheat Sheet", file="CheatSheet", literalize=False)))
+        out.extend(target.line_with_break(target.get_link("Tutorials", file="Tutorials", literalize=False)))
+        out.extend(target.paragraph())
         out.extend(target.horizontal_rule())
         out.extend(target.section_header("List of Files:", lev=3))
         for group in groups:
@@ -954,9 +954,6 @@ class DocsGenParser(object):
             for line in out:
                 f.write(line + "\n")
 
-
-# footnote_marker = '<sup id="fn_{1}">[{0}](#footnote-{1} "{2}")</sup>'.format(num, num.lower(), title)
-# footnote_line = '- <b id="footnote-{1}">{0}</b> {2}[↩](#fn_{1})'.format(num, num.lower(), title)
 
 
 # vim: expandtab tabstop=4 shiftwidth=4 softtabstop=4 nowrap
