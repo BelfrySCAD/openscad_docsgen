@@ -296,7 +296,7 @@ class FileBlock(GenericBlock):
         ]
         link = self.get_link(target, label=self.subtitle, currfile=currfile)
         out = target.horizontal_rule()
-        out.extend(target.file_header("{}. {}".format(n, link), lev=2, esc=False))
+        out.extend(target.header("{}. {}".format(n, link), lev=target.SECTION, esc=False))
         if self.summary:
             out.append(self.summary)
         if self.footnotes:
@@ -327,18 +327,18 @@ class FileBlock(GenericBlock):
         out = []
         if lines:
             out.extend(target.horizontal_rule())
-            out.extend(target.file_header(self.title, self.subtitle, lev=3))
+            out.extend(target.header("{}: {}".format(self.title, self.subtitle), lev=target.SUBSECTION))
             out.extend(lines)
         return out
 
     def get_file_lines(self, controller, target):
-        out = target.file_header(str(self))
+        out = target.header(str(self), lev=target.FILE)
         out.extend(target.markdown_block(self.get_markdown_body(controller, target)))
         for child in self.children:
             if not isinstance(child, SectionBlock):
                 out.extend(child.get_file_lines(controller, target))
         out.extend(target.horizontal_rule())
-        out.extend(target.section_header("Table of Contents"))
+        out.extend(target.header("Table of Contents", lev=target.SECTION))
         out.extend(self.get_toc_lines(target, currfile=self.origin.file))
         for child in self.children:
             if isinstance(child, SectionBlock):
@@ -456,7 +456,7 @@ class SectionBlock(GenericBlock):
             items.extend(child.get_cheatsheet_lines(controller, target))
         out = []
         if subs or consts or items:
-            out.extend(target.section_header(self.title, self.subtitle, lev=4))
+            out.extend(target.header("{}: {}".format(self.title, self.subtitle), lev=target.ITEM))
             out.extend(subs)
             if consts:
                 out.append("Constants: " + " ".join(consts))
@@ -472,7 +472,7 @@ class SectionBlock(GenericBlock):
         out = []
         out.extend(target.horizontal_rule())
         if self.subtitle:
-            out.extend(target.section_header(str(self)))
+            out.extend(target.header(str(self), lev=target.SECTION))
             out.extend(target.markdown_block(self.get_markdown_body(controller, target)))
         for child in self.children:
             out.extend(child.get_file_lines(controller, target))
@@ -549,7 +549,7 @@ class SubsectionBlock(GenericBlock):
             items.extend(child.get_cheatsheet_lines(controller, target))
         out = []
         if consts or items:
-            out.extend(target.section_header(self.title, self.subtitle, lev=4))
+            out.extend(target.header("{}: {}".format(self.title, self.subtitle), lev=target.ITEM))
             if consts:
                 out.append("Constants: " + " ".join(consts))
             out.extend(items)
@@ -564,7 +564,7 @@ class SubsectionBlock(GenericBlock):
         out = []
         out.extend(target.horizontal_rule())
         if self.subtitle:
-            out.extend(target.subsection_header(str(self)))
+            out.extend(target.header(str(self), lev=target.SUBSECTION))
             out.extend(target.markdown_block(self.get_markdown_body(controller, target)))
         chout = []
         for child in self.children:
@@ -678,7 +678,7 @@ class ItemBlock(LabelBlock):
         ]
         out = []
         out.extend(target.horizontal_rule())
-        out.extend(target.item_header(str(self)))
+        out.extend(target.header(str(self), lev=target.ITEM))
         for child in self.sort_children(front_blocks, back_blocks):
             out.extend(child.get_file_lines(controller, target))
         return out

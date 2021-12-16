@@ -4,6 +4,10 @@ import re
 
 
 class Target_Wiki(object):
+    FILE = 1
+    SECTION = 2
+    SUBSECTION = 2
+    ITEM = 3
     def __init__(self, project_name=None, docs_dir="docs"):
         self.docs_dir = docs_dir
         self.project_name = project_name
@@ -78,50 +82,14 @@ class Target_Wiki(object):
     def horizontal_rule(self):
         return [ "---", "" ]
 
-    def file_header(self, title, subtitle="", lev=1, esc=True):
+    def header(self, txt, lev=1, esc=True):
         return [
-            "{} {}{}{}".format(
+            "{} {}".format(
                 "#" * lev,
-                self.escape_entities(title) if esc else title,
-                ": " if subtitle else "",
-                self.escape_entities(subtitle)
+                self.escape_entities(txt) if esc else txt
             ),
             ""
         ]
-
-    def section_header(self, title, subtitle="", lev=2, esc=True):
-        return [
-            "{} {}{}{}".format(
-                "#" * lev,
-                self.escape_entities(title) if esc else title,
-                ": " if subtitle else "",
-                self.escape_entities(subtitle)
-            ),
-            ""
-        ]
-
-    def subsection_header(self, title, subtitle="", lev=3, esc=True):
-        return [
-            "{} {}{}{}".format(
-                "#" * lev,
-                self.escape_entities(title) if esc else title,
-                ": " if subtitle else "",
-                self.escape_entities(subtitle)
-            ),
-            ""
-        ]
-
-    def item_header(self, title, subtitle="", lev=4, esc=True):
-        return [
-            "{} {}{}{}".format(
-                "#" * lev,
-                self.escape_entities(title) if esc else title,
-                ": " if subtitle else "",
-                self.escape_entities(subtitle)
-            ),
-            ""
-        ]
-
     def block_header(self, title, subtitle="", escsub=True):
         return [
             "**{}:** {}".format(

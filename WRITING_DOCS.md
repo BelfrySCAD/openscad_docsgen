@@ -212,7 +212,7 @@ Sections can also include Figures; images generated from code that is not shown 
 Subsection Block
 ----------------
 
-Subsection blocks take a title, and an optional body that will be shown as the description of the Subsection.  A Subsection must be within a declared Section.  If a body line if just a `.` (dot, period), then that line is treated as a blank line in the output:
+Subsection blocks take a title, and an optional body that will be shown as the description of the Subsection.  A Subsection must be within a declared Section.  If a body line is just a `.` (dot, period), then that line is treated as a blank line in the output:
 
     // Subsection: Foobar
     //   You can have several lines of markdown formatted text here.
