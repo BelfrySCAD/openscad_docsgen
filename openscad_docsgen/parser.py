@@ -720,6 +720,8 @@ class DocsGenParser(object):
             if not fblock.group and fblock.group not in groups:
                 groups.append(fblock.group)
 
+        footmarks = []
+        footnotes = {}
         out = target.file_header("Table of Contents")
         out.extend(target.horizontal_rule())
         out.extend(target.section_header("List of Files"))
@@ -732,13 +734,26 @@ class DocsGenParser(object):
                 file = fblock.subtitle
                 anch = target.header_link("{}. {}".format(fnum+1, file))
                 link = target.get_link(file, anchor=anch, literalize=False)
-                marks = "".join(
-                    " ({})".format(target.italics(note))
-                    for mark, note in fblock.footnotes
-                )
-                out.extend(target.bullet_list_item("{}{}".format(link, marks)))
+                filelink = target.get_link("docs", file=file, literalize=False)
+                marks = target.footnote_marks(fblock.footnotes)
+                out.extend(target.bullet_list_item("{} ({}){}".format(link, filelink, marks)))
                 out.append(fblock.summary)
+                for mark, note in fblock.footnotes:
+                    if mark not in footmarks:
+                        footmarks.append(mark)
+                    if mark not in footnotes:
+                        footnotes[mark] = note
+                    elif note != footnotes[mark]:
+                        raise DocsGenException("FileFootnotes", 'Footnote "{}" conflicts with previous definition "{}", while declaring block:'.format(note, footnotes[mark]))
             out.extend(target.bullet_list_end())
+
+        if footmarks:
+            out.append("")
+            out.extend(target.horizontal_rule())
+            out.extend(target.section_header("File Footnotes:", lev=3))
+            for mark in footmarks:
+                out.append("{} = {}  ".format(mark, note))
+            out.append("")
 
         for fnum, fblock in enumerate(prifiles):
             out.extend(fblock.get_tocfile_lines(self.opts.target, n=fnum+1, currfile=self.TOCFILE))

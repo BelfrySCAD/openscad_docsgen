@@ -423,10 +423,10 @@ class SectionBlock(GenericBlock):
         lines = []
         subsects = self.get_children_by_title("Subsection")
         if subsects:
-            lines.extend(target.bullet_list_start())
+            lines.extend(target.numbered_list_start())
             for num, child in enumerate(subsects):
-                lines.extend(child.get_toc_lines(target, currfile=currfile, n="{}.{}".format(n,num+1)))
-            lines.extend(target.bullet_list_end())
+                lines.extend(child.get_toc_lines(target, currfile=currfile, n=num+1))
+            lines.extend(target.numbered_list_end())
         for child in self.get_children_by_title(["Constant","Function","Module","Function&Module"]):
             lines.extend(child.get_toc_lines(target, currfile=currfile))
         out = []
@@ -474,12 +474,8 @@ class SectionBlock(GenericBlock):
         if self.subtitle:
             out.extend(target.section_header(str(self)))
             out.extend(target.markdown_block(self.get_markdown_body(controller, target)))
-        chout = []
         for child in self.children:
-            if chout:
-                chout.extend(target.horizontal_rule())
-            chout.extend(child.get_file_lines(controller, target))
-        out.extend(chout)
+            out.extend(child.get_file_lines(controller, target))
         return out
 
 
@@ -568,7 +564,7 @@ class SubsectionBlock(GenericBlock):
         out = []
         out.extend(target.horizontal_rule())
         if self.subtitle:
-            out.extend(target.section_header(str(self)))
+            out.extend(target.subsection_header(str(self)))
             out.extend(target.markdown_block(self.get_markdown_body(controller, target)))
         chout = []
         for child in self.children:
@@ -681,6 +677,7 @@ class ItemBlock(LabelBlock):
             ["Example"]
         ]
         out = []
+        out.extend(target.horizontal_rule())
         out.extend(target.item_header(str(self)))
         for child in self.sort_children(front_blocks, back_blocks):
             out.extend(child.get_file_lines(controller, target))
