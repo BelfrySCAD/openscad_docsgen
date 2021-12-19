@@ -301,7 +301,7 @@ class DocsGenParser(object):
                     raise DocsGenException(title, "Body not supported, while declaring block:")
                 if not (
                     self.opts.gen_files or self.opts.gen_toc or self.opts.gen_index or
-                    self.opts.gen_topics or self.opts.gen_cheat
+                    self.opts.gen_topics or self.opts.gen_cheat or self.opts.gen_sidebar
                 ):
                     # Only use default GeneratedDocs if the command-line doesn't specify any docs
                     # types to generate.
@@ -630,7 +630,8 @@ class DocsGenParser(object):
         if filename in self.ignored_files:
             return
         if not self.quiet:
-            print("Parsing {}".format(filename))
+            print(" {}".format(filename), end='')
+            sys.stdout.flush()
         self.curr_file_block = None
         self.curr_section = None
         self._reset_header_defs()
@@ -651,8 +652,22 @@ class DocsGenParser(object):
         commentless : bool
             If true, treat every line of the files as if they starts with '// '.  This is used for reading docsgen config files.
         """
+        if not self.quiet:
+            print("Parsing...")
+            print(" ", end='')
+        col = 1
         for filename in filenames:
+            if filename in self.ignored_files:
+                continue
+            flen = len(filename) + 1
+            if col > 1 and flen + col >= 79:
+                print("")
+                print(" ", end='')
+                col = 1
             self.parse_file(filename, commentless=commentless)
+            col = col + flen
+        if not self.quiet:
+            print("")
 
     def dump_tree(self, nodes, pfx="", maxdepth=6):
         """Dumps debug info to stdout for parsed documentation subtree."""
