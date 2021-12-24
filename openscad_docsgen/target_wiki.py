@@ -44,6 +44,9 @@ class Target_Wiki(object):
         return "*{}*".format(txt)
 
     def line_with_break(self, line):
+        if isinstance(line,list):
+            line[-1] += "  "
+            return line
         return [line + "  "]
 
     def paragraph(self, lines=[]):

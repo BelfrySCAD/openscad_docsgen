@@ -298,7 +298,7 @@ class FileBlock(GenericBlock):
         out = []
         out.extend(target.header("{}. {}".format(n, link), lev=target.SECTION, esc=False))
         if self.summary:
-            out.append(self.summary)
+            out.extend(target.line_with_break(self.summary))
         if self.footnotes:
             for mark, note in self.footnotes:
                 out.extend(target.line_with_break(target.italics(note)))
@@ -384,7 +384,7 @@ class SectionBlock(GenericBlock):
         out = []
         if self.subtitle:
             item = self.get_link(target, label=self.subtitle, currfile=currfile)
-            out.extend(target.bullet_list_item(target.line_with_break(item)))
+            out.extend(target.line_with_break(target.bullet_list_item(item)))
             subsects = self.get_children_by_title("Subsection")
             if subsects:
                 out.extend(target.bullet_list_start())
