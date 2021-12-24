@@ -301,7 +301,7 @@ class FileBlock(GenericBlock):
             out.append(self.summary)
         if self.footnotes:
             for mark, note in self.footnotes:
-                out.append(target.line_with_break(target.italics(note)))
+                out.extend(target.line_with_break(target.italics(note)))
         out.extend(target.bullet_list_start())
         for n, sect in enumerate(sections):
             out.extend(sect.get_tocfile_lines(target, n=n+1, currfile=currfile))
