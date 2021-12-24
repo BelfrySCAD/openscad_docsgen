@@ -738,7 +738,6 @@ class DocsGenParser(object):
         footmarks = []
         footnotes = {}
         out = target.header("Table of Contents")
-        out.extend(target.horizontal_rule())
         out.extend(target.header("List of Files", lev=target.SECTION))
         for group in groups:
             out.extend(target.block_header(group if group else "Miscellaneous"))
@@ -764,7 +763,6 @@ class DocsGenParser(object):
 
         if footmarks:
             out.append("")
-            out.extend(target.horizontal_rule())
             out.extend(target.header("File Footnotes:", lev=target.SUBSECTION))
             for mark in footmarks:
                 out.append("{} = {}  ".format(mark, note))
@@ -826,7 +824,6 @@ class DocsGenParser(object):
         )
         for ltr in ltrs_found:
             topics = sorted(index_by_letter[ltr].keys())
-            out.extend(target.horizontal_rule())
             out.extend(target.header(ltr, lev=target.SUBSECTION))
             for topic in topics:
                 itemlist = index_by_letter[ltr][topic]
@@ -894,7 +891,6 @@ class DocsGenParser(object):
                 )
                 for name, item in index_by_letter[ltr]
             ]
-            out.extend(target.horizontal_rule())
             out.extend(target.header(ltr, lev=target.SUBSECTION))
             out.extend(target.bullet_list(items))
 
@@ -949,7 +945,6 @@ class DocsGenParser(object):
         out.extend(target.line_with_break(target.get_link("Cheat Sheet", file="CheatSheet", literalize=False)))
         out.extend(target.line_with_break(target.get_link("Tutorials", file="Tutorials", literalize=False)))
         out.extend(target.paragraph())
-        out.extend(target.horizontal_rule())
         out.extend(target.header("List of Files:", lev=target.SUBSECTION))
         for group in groups:
             out.extend(target.block_header(group if group else "Miscellaneous"))
@@ -971,7 +966,6 @@ class DocsGenParser(object):
             out.extend(target.bullet_list_end())
         if footmarks:
             out.append("")
-            out.extend(target.horizontal_rule())
             out.extend(target.header("File Footnotes:", lev=target.SUBSECTION))
             for mark in footmarks:
                 out.append("{} = {}  ".format(mark, note))

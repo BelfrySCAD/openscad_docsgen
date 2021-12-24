@@ -295,13 +295,13 @@ class FileBlock(GenericBlock):
             if isinstance(sect, SectionBlock)
         ]
         link = self.get_link(target, label=self.subtitle, currfile=currfile)
-        out = target.horizontal_rule()
+        out = []
         out.extend(target.header("{}. {}".format(n, link), lev=target.SECTION, esc=False))
         if self.summary:
             out.append(self.summary)
         if self.footnotes:
             for mark, note in self.footnotes:
-                out.append(target.italics(note))
+                out.append(target.line_with_break(target.italics(note)))
         out.extend(target.bullet_list_start())
         for n, sect in enumerate(sections):
             out.extend(sect.get_tocfile_lines(target, n=n+1, currfile=currfile))
@@ -326,7 +326,6 @@ class FileBlock(GenericBlock):
             lines.extend(child.get_cheatsheet_lines(controller, target))
         out = []
         if lines:
-            out.extend(target.horizontal_rule())
             out.extend(target.header("{}: {}".format(self.title, self.subtitle), lev=target.SUBSECTION))
             out.extend(lines)
         return out
@@ -337,7 +336,6 @@ class FileBlock(GenericBlock):
         for child in self.children:
             if not isinstance(child, SectionBlock):
                 out.extend(child.get_file_lines(controller, target))
-        out.extend(target.horizontal_rule())
         out.extend(target.header("Table of Contents", lev=target.SECTION))
         out.extend(self.get_toc_lines(target, currfile=self.origin.file))
         for child in self.children:
@@ -386,7 +384,7 @@ class SectionBlock(GenericBlock):
         out = []
         if self.subtitle:
             item = self.get_link(target, label=self.subtitle, currfile=currfile)
-            out.extend(target.bullet_list_item(item))
+            out.extend(target.bullet_list_item(target.line_with_break(item)))
             subsects = self.get_children_by_title("Subsection")
             if subsects:
                 out.extend(target.bullet_list_start())
@@ -470,7 +468,6 @@ class SectionBlock(GenericBlock):
         heading and the markdown for the children.
         """
         out = []
-        out.extend(target.horizontal_rule())
         if self.subtitle:
             out.extend(target.header(str(self), lev=target.SECTION))
             out.extend(target.markdown_block(self.get_markdown_body(controller, target)))
@@ -562,16 +559,11 @@ class SubsectionBlock(GenericBlock):
         heading and the markdown for the children.
         """
         out = []
-        out.extend(target.horizontal_rule())
         if self.subtitle:
             out.extend(target.header(str(self), lev=target.SUBSECTION))
             out.extend(target.markdown_block(self.get_markdown_body(controller, target)))
-        chout = []
         for child in self.children:
-            if chout:
-                chout.extend(target.horizontal_rule())
-            chout.extend(child.get_file_lines(controller, target))
-        out.extend(chout)
+            out.extend(child.get_file_lines(controller, target))
         return out
 
 
@@ -676,11 +668,12 @@ class ItemBlock(LabelBlock):
             ["See Also"],
             ["Example"]
         ]
+        children = self.sort_children(front_blocks, back_blocks)
         out = []
-        out.extend(target.horizontal_rule())
         out.extend(target.header(str(self), lev=target.ITEM))
-        for child in self.sort_children(front_blocks, back_blocks):
+        for child in children:
             out.extend(child.get_file_lines(controller, target))
+        out.extend(target.horizontal_rule())
         return out
 
 
