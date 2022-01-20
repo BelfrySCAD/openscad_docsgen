@@ -200,7 +200,9 @@ class BulletListBlock(GenericBlock):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
     def get_file_lines(self, controller, target):
-        out = target.block_header(self.title, target.escape_entities(self.subtitle))
+        sub = self.parse_links(self.subtitle, controller, target)
+        sub = target.escape_entities(sub)
+        out = target.block_header(self.title, sub)
         out.extend(target.bullet_list(self.body))
         return out
 
@@ -210,7 +212,9 @@ class NumberedListBlock(GenericBlock):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
     def get_file_lines(self, controller, target):
-        out = target.block_header(self.title, target.escape_entities(self.subtitle))
+        sub = self.parse_links(self.subtitle, controller, target)
+        sub = target.escape_entities(sub)
+        out = target.block_header(self.title, sub)
         out.extend(target.numbered_list(self.body))
         return out
 
@@ -246,7 +250,9 @@ class TableBlock(GenericBlock):
             table.append(cells)
         if table:
             tables.append(table)
-        out = target.block_header(self.title, target.escape_entities(self.subtitle))
+        sub = self.parse_links(self.subtitle, controller, target)
+        sub = target.escape_entities(sub)
+        out = target.block_header(self.title, sub)
         for tnum, table in enumerate(tables):
             headers = self.header_sets[tnum]
             out.extend(target.table(headers,table))
@@ -805,12 +811,14 @@ class ImageBlock(GenericBlock):
             code_below = self.image_req.script_under
             width = int(self.image_req.imgsize[0])
             height = int(self.image_req.imgsize[1])
+        sub = self.parse_links(self.subtitle, controller, target)
+        sub = target.escape_entities(sub)
         if "Figure" in self.title:
-            out.extend(target.image_block(self.parent.subtitle, self.title, self.subtitle, rel_url=self.image_url_rel, code_below=code_below, width=width, height=height))
+            out.extend(target.image_block(self.parent.subtitle, self.title, sub, rel_url=self.image_url_rel, code_below=code_below, width=width, height=height))
         elif not do_render:
-            out.extend(target.image_block(self.parent.subtitle, self.title, self.subtitle, code=code, code_below=code_below, width=width, height=height))
+            out.extend(target.image_block(self.parent.subtitle, self.title, sub, code=code, code_below=code_below, width=width, height=height))
         else:
-            out.extend(target.image_block(self.parent.subtitle, self.title, self.subtitle, code=code, rel_url=self.image_url_rel, code_below=code_below, width=width, height=height))
+            out.extend(target.image_block(self.parent.subtitle, self.title, sub, code=code, rel_url=self.image_url_rel, code_below=code_below, width=width, height=height))
         return out
 
 
