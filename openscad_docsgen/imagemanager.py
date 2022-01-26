@@ -44,7 +44,9 @@ class ImageRequest(object):
         self.orthographic = "Perspective" not in image_meta
         self.script_under = False
 
-        if "Render" in image_meta:
+        if "ThrownTogether" in image_meta:
+            self.render_mode = RenderMode.thrown_together
+        elif "Render" in image_meta:
             self.render_mode = RenderMode.render
 
         m = self._size_re.search(image_meta)

@@ -608,7 +608,8 @@ metadata directives:
 - `Big`: Make the image big sized.
 - `Huge`: Make the image huge sized.
 - `Size=880x640`: Make the image 880 by 640 pixels in size.
-- `Render`: Force full rendering from OpenSCAD, instead of the normal preview.
+- `ThrownTogether`: Render in Thrown Together view mode instead of Preview mode.
+- `Render`: Force full rendering from OpenSCAD, instead of the normal Preview mode.
 - `Edges`: Highlight face edges.
 - `NoAxes`: Hides the axes and scales.
 - `NoScales`: Hides the scale numbers along the axes.
