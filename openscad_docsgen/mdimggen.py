@@ -54,7 +54,7 @@ class MarkdownImageGen(object):
 
             out = []
             with open(infile, "r") as f:
-                script = ["include <BOSL2/std.scad>"]
+                script = []
                 extyp = ""
                 in_script = False
                 imgnum = 0
@@ -70,7 +70,7 @@ class MarkdownImageGen(object):
                         else:
                             extyp = ""
                         show_script = "ImgOnly" not in extyp
-                        script = ["include <BOSL2/std.scad>"]
+                        script = []
                         imgnum = imgnum + 1
                     elif in_script:
                         if line == "```":
