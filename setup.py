@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "2.0.13"
+VERSION = "2.0.14"
 
 
 with open('README.rst') as f:
@@ -44,7 +44,7 @@ setup(
         'setuptools',
         'Pillow>=7.2.0',
         'PyYAML>=6.0',
-        'openscad_runner>=1.0.11'
+        'openscad_runner>=1.0.12'
     ],
     data_files=data_files,
     entry_points = {
