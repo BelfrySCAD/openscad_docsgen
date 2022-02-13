@@ -194,6 +194,11 @@ class TextBlock(GenericBlock):
             subtitle = ""
         super().__init__(title, subtitle, body, origin, parent=parent)
 
+    def get_file_lines(self, controller, target):
+        out = self.get_markdown_body(controller, target)
+        out.append("")
+        return out
+
 
 class BulletListBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
