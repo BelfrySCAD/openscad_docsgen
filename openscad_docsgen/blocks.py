@@ -187,7 +187,7 @@ class SeeAlsoBlock(LabelBlock):
         return out
 
 
-class TextBlock(GenericBlock):
+class HeaderlessBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         if subtitle:
             body.insert(0, subtitle)
@@ -198,6 +198,14 @@ class TextBlock(GenericBlock):
         out = self.get_markdown_body(controller, target)
         out.append("")
         return out
+
+
+class TextBlock(GenericBlock):
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        if subtitle:
+            body.insert(0, subtitle)
+            subtitle = ""
+        super().__init__(title, subtitle, body, origin, parent=parent)
 
 
 class BulletListBlock(GenericBlock):

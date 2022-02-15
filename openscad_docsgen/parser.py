@@ -122,7 +122,7 @@ class DocsGenParser(object):
                              ),
         }
         lines = [
-            "// DefineHeader(Text): Text",
+            "// DefineHeader(Headerless): Continues",
             "// DefineHeader(Text;ItemOnly): Description",
             "// DefineHeader(BulletList;ItemOnly): Usage",
         ]
@@ -203,6 +203,8 @@ class DocsGenParser(object):
             self.header_defs[title] = (parentspec, FigureBlock, None, None)
         elif "Label" in meta:
             self.header_defs[title] = (parentspec, LabelBlock, None, None)
+        elif "Headerless" in meta:
+            self.header_defs[title] = (parentspec, HeaderlessBlock, None, None)
         elif "Text" in meta:
             self.header_defs[title] = (parentspec, TextBlock, None, None)
         elif "Generic" in meta:
@@ -390,7 +392,7 @@ class DocsGenParser(object):
             elif title in self.header_defs:
                 parcls, cls, data, cb = self.header_defs[title]
                 if not parcls or isinstance(self.curr_parent, parcls):
-                    if cls in (GenericBlock, LabelBlock, TextBlock, NumberedListBlock, BulletListBlock):
+                    if cls in (GenericBlock, LabelBlock, TextBlock, HeaderlessBlock, NumberedListBlock, BulletListBlock):
                         cls(title, subtitle, body, origin, parent=parent)
                     elif cls == TableBlock:
                         cls(title, subtitle, body, origin, parent=parent, header_sets=data)
