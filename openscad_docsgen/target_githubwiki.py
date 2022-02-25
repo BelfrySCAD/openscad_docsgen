@@ -11,7 +11,6 @@ class Target_GitHubWiki(Target_Wiki):
 
     def image_block(self, item_name, title, subtitle="", code=[], code_below=False, rel_url=None, width='', height=''):
         out = []
-        out.extend(self.markdown_block(["<br/>"]))
         out.extend(self.block_header(title, subtitle, escsub=False))
         if rel_url:
             out.extend(self.image(item_name, title, rel_url, width=width, height=height))
@@ -19,7 +18,7 @@ class Target_GitHubWiki(Target_Wiki):
             out.extend(self.markdown_block(['<br clear="all" />']))
         out.extend(self.code_block(code))
         if not code_below:
-            out.extend(self.markdown_block(['<br clear="all" />']))
+            out.extend(self.markdown_block(['<br clear="all" /><br/>']))
         return out
 
     def image(self, item_name, img_type="", rel_url="", height='', width=''):
