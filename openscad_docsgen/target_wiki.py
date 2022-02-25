@@ -93,6 +93,7 @@ class Target_Wiki(object):
             ),
             ""
         ]
+
     def block_header(self, title, subtitle="", escsub=True):
         return [
             "**{}:** {}".format(

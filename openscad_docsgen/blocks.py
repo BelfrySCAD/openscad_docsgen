@@ -195,7 +195,9 @@ class HeaderlessBlock(GenericBlock):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
     def get_file_lines(self, controller, target):
-        out = self.get_markdown_body(controller, target)
+        out = []
+        out.append("")
+        out.extend(self.get_markdown_body(controller, target))
         out.append("")
         return out
 
