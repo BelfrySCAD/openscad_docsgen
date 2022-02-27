@@ -17,7 +17,7 @@ class ErrorLog(object):
     def add_entry(self, file, line, msg, level):
         self.errlist.append( (file, line, msg, level) )
         self.badfiles[file] = 1
-        print("!! {} at {}:{}: {}".format(level.upper(), file, line, msg) , file=sys.stderr)
+        print("\n!! {} at {}:{}: {}".format(level.upper(), file, line, msg) , file=sys.stderr)
         sys.stderr.flush()
         if level == self.FAIL:
             self.has_errors = True

@@ -233,23 +233,23 @@ class DocsGenParser(object):
         body = []
         line_num += 1
 
-        first_line = True
-        indent = 2
-        while line_num < len(lines):
-            line = lines[line_num]
-            if not line.startswith("//" + (" " * indent)):
-                if line.startswith("//  "):
-                    raise DocsGenException(title, "Body line has less indentation than first line, while declaring block:")
-                break
-            line = line[2:]
-            if first_line:
-                first_line = False
-                indent = len(line) - len(line.lstrip())
-            line = line[indent:]
-            body.append(line.rstrip())
-            line_num += 1
-
         try:
+            first_line = True
+            indent = 2
+            while line_num < len(lines):
+                line = lines[line_num]
+                if not line.startswith("//" + (" " * indent)):
+                    if line.startswith("//  "):
+                        raise DocsGenException(title, "Body line has less indentation than first line, while declaring block:")
+                    break
+                line = line[2:]
+                if first_line:
+                    first_line = False
+                    indent = len(line) - len(line.lstrip())
+                line = line[indent:]
+                body.append(line.rstrip())
+                line_num += 1
+
             parent = self.curr_parent
             origin = OriginInfo(src_file, hdr_line_num+1)
             if title == "DefineHeader":
@@ -366,10 +366,11 @@ class DocsGenParser(object):
                 if not subtitle:
                     raise DocsGenException(title, "Must provide a subtitle when declaring block:")
                 self._mkfilenode(origin)
-                self.curr_file_block.footnotes = [
-                    [x.strip() for x in part.strip().split('=',1)]
-                    for part in subtitle.split(";")
-                ]
+                self.curr_file_block.footnotes = []
+                for part in subtitle.split(";"):
+                    fndata = [x.strip() for x in part.strip().split('=',1)]
+                    fndata.append(origin)
+                    self.curr_file_block.footnotes.append(fndata)
             elif title == "CommonCode":
                 self._mkfilenode(origin)
                 self.curr_file_block.common_code.extend(body)
@@ -754,13 +755,16 @@ class DocsGenParser(object):
                 marks = target.footnote_marks(fblock.footnotes)
                 out.extend(target.bullet_list_item("{} ({}){}".format(link, filelink, marks)))
                 out.append(fblock.summary)
-                for mark, note in fblock.footnotes:
-                    if mark not in footmarks:
-                        footmarks.append(mark)
-                    if mark not in footnotes:
-                        footnotes[mark] = note
-                    elif note != footnotes[mark]:
-                        raise DocsGenException("FileFootnotes", 'Footnote "{}" conflicts with previous definition "{}", while declaring block:'.format(note, footnotes[mark]))
+                for mark, note, origin in fblock.footnotes:
+                    try:
+                        if mark not in footmarks:
+                            footmarks.append(mark)
+                        if mark not in footnotes:
+                            footnotes[mark] = note
+                        elif note != footnotes[mark]:
+                            raise DocsGenException("FileFootnotes", 'Footnote "{}" conflicts with previous definition "{}", while declaring block:'.format(note, footnotes[mark]))
+                    except DocsGenException as e:
+                        errorlog.add_entry(origin.file, origin.line, str(e), ErrorLog.FAIL)
             out.extend(target.bullet_list_end())
 
         if footmarks:
@@ -956,13 +960,16 @@ class DocsGenParser(object):
                     continue
                 file = fblock.subtitle
                 link = target.get_link(file, file=file, literalize=False)
-                for mark, note in fblock.footnotes:
-                    if mark not in footmarks:
-                        footmarks.append(mark)
-                    if mark not in footnotes:
-                        footnotes[mark] = note
-                    elif note != footnotes[mark]:
-                        raise DocsGenException("FileFootnotes", 'Footnote "{}" conflicts with previous definition "{}", while declaring block:'.format(note, footnotes[mark]))
+                for mark, note, origin in fblock.footnotes:
+                    try:
+                        if mark not in footmarks:
+                            footmarks.append(mark)
+                        if mark not in footnotes:
+                            footnotes[mark] = note
+                        elif note != footnotes[mark]:
+                            raise DocsGenException("FileFootnotes", 'Footnote "{}" conflicts with previous definition "{}", while declaring block:'.format(note, footnotes[mark]))
+                    except DocsGenException as e:
+                        errorlog.add_entry(origin.file, origin.line, str(e), ErrorLog.FAIL)
                 marks = target.footnote_marks(fblock.footnotes)
                 out.extend(target.bullet_list_item("{}{}".format(link, marks)))
             out.extend(target.bullet_list_end())
