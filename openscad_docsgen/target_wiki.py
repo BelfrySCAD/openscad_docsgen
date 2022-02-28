@@ -55,7 +55,7 @@ class Target_Wiki(object):
 
     def footnote_marks(self, footnotes):
         out = ""
-        for mark, note in footnotes:
+        for mark, note, origin in footnotes:
             marks = ' <sup title="{1}">[{0}](#file-footnotes)</sup>'.format(mark, note)
             out = out + marks
         return out

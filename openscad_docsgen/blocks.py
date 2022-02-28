@@ -321,7 +321,7 @@ class FileBlock(GenericBlock):
         if self.summary:
             out.extend(target.line_with_break(self.summary))
         if self.footnotes:
-            for mark, note in self.footnotes:
+            for mark, note, origin in self.footnotes:
                 out.extend(target.line_with_break(target.italics(note)))
         out.extend(target.bullet_list_start())
         for n, sect in enumerate(sections):
