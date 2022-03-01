@@ -11,9 +11,16 @@ import argparse
 
 from .errorlog import errorlog, ErrorLog
 from .imagemanager import image_manager
+from .filehashes import FileHashes
 
 
 class MarkdownImageGen(object):
+    HASHFILE = ".source_hashes"
+
+    def __init__(self, opts):
+        self.opts = opts
+        self.filehashes = FileHashes(os.path.join(self.opts.docs_dir, self.HASHFILE))
+
     def img_started(self, req):
         print("  {}... ".format(os.path.basename(req.image_file)), end='')
         sys.stdout.flush()
@@ -44,7 +51,8 @@ class MarkdownImageGen(object):
         errorlog.add_entry(req.src_file, req.src_line, out, ErrorLog.FAIL)
         sys.stderr.flush()
 
-    def processFiles(self, opts, srcfiles):
+    def processFiles(self, srcfiles):
+        opts = self.opts
         image_root = os.path.join(opts.docs_dir, opts.image_root)
         for infile in srcfiles:
             fileroot = os.path.splitext(os.path.basename(infile))[0]
@@ -104,7 +112,14 @@ class MarkdownImageGen(object):
                     for line in out:
                         print(line, file=f)
 
-            image_manager.process_requests(test_only=opts.test_only)
+            has_changed = self.filehashes.is_changed(infile)
+            if opts.force or opts.test_only or has_changed:
+                image_manager.process_requests(test_only=opts.test_only)
+            image_manager.purge_requests()
+
+            if errorlog.file_has_errors(infile):
+                self.filehashes.invalidate(infile)
+            self.filehashes.save()
 
 
 def mdimggen_main():
@@ -125,6 +140,8 @@ def mdimggen_main():
                         help="If given, don't generate images, but do try executing the scripts.")
     parser.add_argument('-I', '--image_root', default=defaults.get("image_root", "images"),
                         help='The directory to put generated images in.')
+    parser.add_argument('-f', '--force', action="store_true",
+                        help='If given, force regeneration of images.')
     parser.add_argument('srcfiles', nargs='*', help='List of input markdown files.')
     args = parser.parse_args()
 
@@ -141,9 +158,9 @@ def mdimggen_main():
             print("No files to parse.  Aborting.", file=sys.stderr)
             sys.exit(-1)
 
-    mdimggen = MarkdownImageGen()
+    mdimggen = MarkdownImageGen(args)
     try:
-        mdimggen.processFiles(args, args.srcfiles)
+        mdimggen.processFiles(args.srcfiles)
     except OSError as e:
         print(e)
         sys.exit(-1)

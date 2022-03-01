@@ -5,11 +5,11 @@ import os.path
 import re
 import sys
 import glob
-import hashlib
 
 from .errorlog import ErrorLog, errorlog
 from .imagemanager import image_manager
 from .blocks import *
+from .filehashes import FileHashes
 
 
 class OriginInfo:
@@ -53,61 +53,7 @@ class DocsGenParser(object):
         self.SIDEBARFILE = "_Sidebar" + sfx
 
         self._reset_header_defs()
-        self.read_hashes()
-
-    def _sha256sum(self, filename):
-        h = hashlib.sha256()
-        b = bytearray(128*1024)
-        mv = memoryview(b)
-        try:
-            with open(filename, 'rb', buffering=0) as f:
-                for n in iter(lambda : f.readinto(mv), 0):
-                    h.update(mv[:n])
-        except FileNotFoundError as e:
-            pass
-        return h.hexdigest()
-
-    def read_hashes(self):
-        """Reads all known file hash values from the hashes file.
-        """
-        self.file_hashes = {}
-        target = self.opts.target
-        hashfile = os.path.join(target.docs_dir, self.HASHFILE)
-        if os.path.isfile(hashfile):
-            try:
-                with open(hashfile, "r") as f:
-                    for line in f.readlines():
-                        filename, hashstr = line.strip().split("|")
-                        self.file_hashes[filename] = hashstr
-            except ValueError as e:
-                print("Corrrupt hashes file.  Ignoring.", file=sys.stderr)
-                sys.stderr.flush()
-                self.file_hashes = {}
-
-    def matches_hash(self, filename):
-        """Returns True if the given file matches it's recorded hash value.
-        Updates the hash value in memory for the file if it doesn't match.
-        Does NOT save hash values to disk.
-        """
-        newhash = self._sha256sum(filename)
-        if filename not in self.file_hashes:
-            self.file_hashes[filename] = newhash
-            return False
-        oldhash = self.file_hashes[filename]
-        if oldhash != newhash:
-            self.file_hashes[filename] = newhash
-            return False
-        return True
-
-    def write_hashes(self):
-        """Writes out all known hash values.
-        """
-        target = self.opts.target
-        hashfile = os.path.join(target.docs_dir, self.HASHFILE)
-        os.makedirs(os.path.dirname(hashfile), exist_ok=True)
-        with open(hashfile, "w") as f:
-            for filename, hashstr in self.file_hashes.items():
-                f.write("{}|{}\n".format(filename, hashstr))
+        self.filehashes = FileHashes(os.path.join(self.target.docs_dir, self.HASHFILE))
 
     def _reset_header_defs(self):
         self.header_defs = {
@@ -694,8 +640,8 @@ class DocsGenParser(object):
             for fblock in self.file_blocks:
                 lines = fblock.get_file_lines(self, target)
                 filename = fblock.subtitle.strip()
-                hashmatch = self.matches_hash(filename)
-                if self.opts.force or not hashmatch:
+                has_changed = self.filehashes.is_changed(filename)
+                if self.opts.force or not has_changed:
                     image_manager.process_requests(test_only=self.opts.test_only)
                 else:
                     image_manager.purge_requests()
@@ -715,15 +661,15 @@ class DocsGenParser(object):
                 for line in out:
                     f.write(line + "\n")
             if self.opts.gen_imgs:
-                hashmatch = self.matches_hash(filename)
-                if self.opts.force or not hashmatch:
+                has_changed = self.filehashes.is_changed(filename)
+                if self.opts.force or not has_changed:
                     image_manager.process_requests(test_only=self.opts.test_only)
                 else:
                     image_manager.purge_requests()
                 if not self.opts.test_only:
                     if errorlog.file_has_errors(filename):
-                        self.file_hashes.pop(filename)
-                    self.write_hashes()
+                        self.filehashes.invalidate(filename)
+                    self.filehashes.save()
 
     def write_toc_file(self):
         """Generates the table-of-contents TOC file from the parsed documentation"""
