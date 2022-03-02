@@ -637,18 +637,12 @@ class DocsGenParser(object):
         """
         target = self.opts.target
         if self.opts.test_only:
-            for fblock in self.file_blocks:
+            for fblock in sorted(self.file_blocks, key=lambda x: x.subtitle.strip()):
                 lines = fblock.get_file_lines(self, target)
-                filename = fblock.subtitle.strip()
-                has_changed = self.filehashes.is_changed(filename)
-                if self.opts.force or not has_changed:
-                    image_manager.process_requests(test_only=self.opts.test_only)
-                else:
-                    image_manager.purge_requests()
+                image_manager.process_requests(test_only=True)
             return
         os.makedirs(target.docs_dir, mode=0o744, exist_ok=True)
-        for fblock in self.file_blocks:
-            filename = fblock.subtitle.strip()
+        for fblock in sorted(self.file_blocks, key=lambda x: x.subtitle.strip()):
             outfile = os.path.join(target.docs_dir, fblock.origin.file+target.get_suffix())
             if not self.quiet:
                 print("Writing {}...".format(outfile))
@@ -661,15 +655,14 @@ class DocsGenParser(object):
                 for line in out:
                     f.write(line + "\n")
             if self.opts.gen_imgs:
+                filename = fblock.subtitle.strip()
                 has_changed = self.filehashes.is_changed(filename)
-                if self.opts.force or not has_changed:
-                    image_manager.process_requests(test_only=self.opts.test_only)
-                else:
-                    image_manager.purge_requests()
-                if not self.opts.test_only:
-                    if errorlog.file_has_errors(filename):
-                        self.filehashes.invalidate(filename)
-                    self.filehashes.save()
+                if self.opts.force or has_changed:
+                    image_manager.process_requests(test_only=False)
+                image_manager.purge_requests()
+                if errorlog.file_has_errors(filename):
+                    self.filehashes.invalidate(filename)
+                self.filehashes.save()
 
     def write_toc_file(self):
         """Generates the table-of-contents TOC file from the parsed documentation"""
