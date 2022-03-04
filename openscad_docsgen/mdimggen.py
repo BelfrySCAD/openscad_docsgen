@@ -158,8 +158,8 @@ def mdimggen_main():
             print("No files to parse.  Aborting.", file=sys.stderr)
             sys.exit(-1)
 
-    mdimggen = MarkdownImageGen(args)
     try:
+        mdimggen = MarkdownImageGen(args)
         mdimggen.processFiles(args.srcfiles)
     except OSError as e:
         print(e)

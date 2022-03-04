@@ -53,7 +53,6 @@ class DocsGenParser(object):
         self.SIDEBARFILE = "_Sidebar" + sfx
 
         self._reset_header_defs()
-        self.filehashes = FileHashes(os.path.join(self.target.docs_dir, self.HASHFILE))
 
     def _reset_header_defs(self):
         self.header_defs = {
@@ -642,6 +641,7 @@ class DocsGenParser(object):
                 image_manager.process_requests(test_only=True)
             return
         os.makedirs(target.docs_dir, mode=0o744, exist_ok=True)
+        filehashes = FileHashes(os.path.join(target.docs_dir, self.HASHFILE))
         for fblock in sorted(self.file_blocks, key=lambda x: x.subtitle.strip()):
             outfile = os.path.join(target.docs_dir, fblock.origin.file+target.get_suffix())
             if not self.quiet:
@@ -656,13 +656,13 @@ class DocsGenParser(object):
                     f.write(line + "\n")
             if self.opts.gen_imgs:
                 filename = fblock.subtitle.strip()
-                has_changed = self.filehashes.is_changed(filename)
+                has_changed = filehashes.is_changed(filename)
                 if self.opts.force or has_changed:
                     image_manager.process_requests(test_only=False)
                 image_manager.purge_requests()
                 if errorlog.file_has_errors(filename):
-                    self.filehashes.invalidate(filename)
-                self.filehashes.save()
+                    filehashes.invalidate(filename)
+                filehashes.save()
 
     def write_toc_file(self):
         """Generates the table-of-contents TOC file from the parsed documentation"""
