@@ -15,13 +15,13 @@ from openscad_runner import RenderMode, OpenScadRunner
 
 
 class ImageRequest(object):
-    _size_re = re.compile(r'Size=([0-9]+)x([0-9]+)')
-    _frames_re = re.compile(r'Frames=([0-9]+)')
-    _framems_re = re.compile(r'FrameMS=([0-9]+)')
-    _fps_re = re.compile(r'FPS=([0-9]+)')
-    _vpt_re = re.compile(r'VPT=\[([^]]+)\]')
-    _vpr_re = re.compile(r'VPR=\[([^]]+)\]')
-    _vpd_re = re.compile(r'VPD=([0-9]+)')
+    _size_re = re.compile(r'Size *= *([0-9]+) *x *([0-9]+)')
+    _frames_re = re.compile(r'Frames *= *([0-9]+)')
+    _framems_re = re.compile(r'FrameMS *= *([0-9]+)')
+    _fps_re = re.compile(r'FPS *= *([0-9]+)')
+    _vpt_re = re.compile(r'VPT *= *\[([^]]+)\]')
+    _vpr_re = re.compile(r'VPR *= *\[([^]]+)\]')
+    _vpd_re = re.compile(r'VPD *= *([0-9]+)')
 
     def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False):
         self.src_file = src_file
