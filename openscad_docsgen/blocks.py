@@ -18,7 +18,7 @@ class DocsGenException(Exception):
 
 
 class GenericBlock(object):
-    _link_pat = re.compile(r'^(.*)\{\{([A-Za-z0-9_()]+)\}\}(.*)$')
+    _link_pat = re.compile(r'^(.*?)\{\{([A-Za-z0-9_()]+)\}\}(.*)$')
 
     def __init__(self, title, subtitle, body, origin, parent=None):
         self.title = title
