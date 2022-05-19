@@ -108,7 +108,7 @@ class Target_Wiki(object):
         out.append("")
         return out
 
-    def image_block(self, item_name, title, subtitle="", code=[], code_below=False, rel_url=None):
+    def image_block(self, item_name, title, subtitle="", code=[], code_below=False, rel_url=None, **kwargs):
         out = []
         out.extend(self.block_header(title, subtitle))
         if not code_below:
@@ -119,7 +119,7 @@ class Target_Wiki(object):
             out.extend(self.code_block(code))
         return out
 
-    def image(self, item_name, img_type="", rel_url=""):
+    def image(self, item_name, img_type="", rel_url="", **kwargs):
         return [
             '![{0} {1}]({2} "{0} {1}")'.format(
                 self.escape_entities(item_name),
