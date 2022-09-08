@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import sys
+import json
 
 class ErrorLog(object):
     NOTE = "notice"
