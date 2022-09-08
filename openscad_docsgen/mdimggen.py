@@ -83,9 +83,12 @@ class MarkdownImageGen(object):
                     elif in_script:
                         if line == "```":
                             in_script = False
-                            fext = "png"
-                            if any(x in extyp for x in ("Anim", "Spin")):
+                            if opts.png_animation:
+                                fext = "png"
+                            elif any(x in extyp for x in ("Anim", "Spin")):
                                 fext = "gif"
+                            else:
+                                fext = "png"
                             fname = "{}_{}.{}".format(fileroot, imgnum, fext)
                             img_rel_url = os.path.join(opts.image_root, fname)
                             imgfile = os.path.join(opts.docs_dir, img_rel_url)
@@ -142,6 +145,8 @@ def mdimggen_main():
                         help='The directory to put generated images in.')
     parser.add_argument('-f', '--force', action="store_true",
                         help='If given, force regeneration of images.')
+    parser.add_argument('-a', '--png-animation', action="store_true",
+                        help='If given, animations are created using animated PNGs instead of GIFs.')
     parser.add_argument('srcfiles', nargs='*', help='List of input markdown files.')
     args = parser.parse_args()
 

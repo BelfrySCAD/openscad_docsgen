@@ -699,7 +699,7 @@ class ItemBlock(LabelBlock):
 
 
 class ImageBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, origin, parent=None, meta=""):
+    def __init__(self, title, subtitle, body, origin, parent=None, meta="", use_apngs=False):
         super().__init__(title, subtitle, body, origin, parent=parent)
         fileblock = parent
         while fileblock.parent:
@@ -722,7 +722,12 @@ class ImageBlock(GenericBlock):
         self.raw_script = script_lines
 
         san_name = re.sub(r'[^A-Za-z0-9_-]', r'', os.path.basename(parent.subtitle.strip().lower().replace(" ","-")))
-        file_ext = "gif" if "Spin" in self.meta or "Anim" in self.meta else "png"
+        if use_apngs:
+            file_ext = "png"
+        elif "Spin" in self.meta or "Anim" in self.meta:
+            file_ext = "gif"
+        else:
+            file_ext = "png"
         if self.title == "Figure":
             parent.figure_num += 1
             self.image_num = parent.figure_num
@@ -838,13 +843,13 @@ class ImageBlock(GenericBlock):
 
 
 class FigureBlock(ImageBlock):
-    def __init__(self, title, subtitle, body, origin, parent, meta=""):
-        super().__init__(title, subtitle, body, origin, parent=parent, meta=meta)
+    def __init__(self, title, subtitle, body, origin, parent, meta="", use_apngs=False):
+        super().__init__(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=use_apngs)
 
 
 class ExampleBlock(ImageBlock):
-    def __init__(self, title, subtitle, body, origin, parent, meta=""):
-        super().__init__(title, subtitle, body, origin, parent=parent, meta=meta)
+    def __init__(self, title, subtitle, body, origin, parent, meta="", use_apngs=False):
+        super().__init__(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=use_apngs)
 
 
 

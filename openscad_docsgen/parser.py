@@ -321,19 +321,19 @@ class DocsGenParser(object):
                 self.curr_file_block.common_code.extend(body)
             elif title == "Figure":
                 self._mkfilenode(origin)
-                FigureBlock(title, subtitle, body, origin, parent=parent, meta=meta)
+                FigureBlock(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
             elif title == "Example":
                 if self.curr_item:
-                    ExampleBlock(title, subtitle, body, origin, parent=parent, meta=meta)
+                    ExampleBlock(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
             elif title == "Figures":
                 self._mkfilenode(origin)
                 for lnum, line in enumerate(body):
-                    FigureBlock("Figure", subtitle, [line], origin, parent=parent, meta=meta)
+                    FigureBlock("Figure", subtitle, [line], origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
                     subtitle = ""
             elif title == "Examples":
                 if self.curr_item:
                     for lnum, line in enumerate(body):
-                        ExampleBlock("Example", subtitle, [line], origin, parent=parent, meta=meta)
+                        ExampleBlock("Example", subtitle, [line], origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
                         subtitle = ""
             elif title in self.header_defs:
                 parcls, cls, data, cb = self.header_defs[title]
@@ -343,7 +343,7 @@ class DocsGenParser(object):
                     elif cls == TableBlock:
                         cls(title, subtitle, body, origin, parent=parent, header_sets=data)
                     elif cls in (FigureBlock, ExampleBlock):
-                        cls(title, subtitle, body, origin, parent=parent, meta=meta)
+                        cls(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
                     if cb:
                         cb(title, subtitle, body, origin, meta)
 

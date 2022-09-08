@@ -32,6 +32,7 @@ class Options(object):
         self.gen_sidebar = args.gen_sidebar
         self.report = args.report
         self.dump_tree = args.dump_tree
+        self.png_animation = args.png_animation
         self.update_target()
 
     def set_target(self, targ):
@@ -120,6 +121,8 @@ def main():
                         help='If given, generate CheatSheet.md file with all Usage lines.')
     parser.add_argument('-s', '--gen_sidebar', action="store_true",
                         help="If given, generate _Sidebar.md file index.")
+    parser.add_argument('-a', '--png-animation', action="store_true",
+                        help='If given, animations are created using animated PNGs instead of GIFs.')
     parser.add_argument('-P', '--project-name',
                         help='If given, sets the name of the project to be shown in titles.')
     parser.add_argument('-r', '--report', action="store_true",
