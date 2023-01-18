@@ -49,6 +49,11 @@ class Target_Wiki(object):
             return line
         return [line + "  "]
 
+    def quote(self, lines=[]):
+        if isinstance(lines,list):
+            return [">" + line for line in lines]
+        return [">" + lines]
+
     def paragraph(self, lines=[]):
         lines.append("")
         return lines

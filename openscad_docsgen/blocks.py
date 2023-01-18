@@ -665,16 +665,35 @@ class ItemBlock(LabelBlock):
         item_name = re.sub(r'[^A-Za-z0-9_$]', r'', self.subtitle)
         link = self.get_link(target, currfile="CheatSheet", label=item_name, literalize=False)
         parts = []
+        part_lens = []
         for usage in self.get_children_by_title("Usage"):
             for line in usage.body:
+                part_lens.append(len(line))
                 line = target.escape_entities(line).replace(
                     target.escape_entities(item_name),
                     link
                 )
-                parts.append(target.code_span(line) + "  ")
+                parts.append(line)
         out = []
-        if parts:
-            out = ["".join(parts)]
+        line = ""
+        line_len = 0
+        for part, part_len in zip(parts, part_lens):
+            part = target.code_span(part)
+            part = target.line_with_break(part)[0]
+            if line_len + part_len > 80 or part_len > 40:
+                if line:
+                    line = target.quote(line)[0];
+                    out.append(line)
+                line = part
+                line_len = part_len
+            else:
+                if line:
+                    line += "&nbsp; &nbsp; "
+                line += part
+                line_len += part_len
+        if line:
+            line = target.quote(line)[0];
+            out.extend(target.paragraph([line]))
         return out
 
     def get_file_lines(self, controller, target):
