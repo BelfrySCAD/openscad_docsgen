@@ -225,6 +225,13 @@ class DocsGenParser(object):
                     raise DocsGenException(title, "Body not supported, while declaring block:")
                 self.opts.docs_dir = subtitle.strip().rstrip("/")
                 self.opts.update_target()
+            elif title == "UsePNGAnimations":
+                if origin.file != self.RCFILE:
+                    raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
+                if body:
+                    raise DocsGenException(title, "Body not supported, while declaring block:")
+                self.opts.png_animation = (subtitle.strip().upper() in ["TRUE", "YES", "1"])
+                self.opts.update_target()
             elif title == "ProjectName":
                 if origin.file != self.RCFILE:
                     raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
