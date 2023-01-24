@@ -146,6 +146,7 @@ def mdimggen_main():
     parser.add_argument('-f', '--force', action="store_true",
                         help='If given, force regeneration of images.')
     parser.add_argument('-a', '--png-animation', action="store_true",
+                        default=defaults.get("png_animations", True),
                         help='If given, animations are created using animated PNGs instead of GIFs.')
     parser.add_argument('srcfiles', nargs='*', help='List of input markdown files.')
     args = parser.parse_args()

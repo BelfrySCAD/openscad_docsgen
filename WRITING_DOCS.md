@@ -989,6 +989,12 @@ Where the valid docs file types are as follows:
 
 ---
 
+To specify the creation of Animated PNG files instead of Animated GIFs, you can use the UsePNGAnimations block.  You give it a YES or NO value like:
+
+    UsePNGAnimations: Yes
+
+---
+
 To ignore specific files, to prevent generating documentation for them, you can use the IgnoreFiles block.   Note that the commentline prefix is not needed in the configuration file:
 
     IgnoreFiles:
