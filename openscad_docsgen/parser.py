@@ -861,7 +861,7 @@ class DocsGenParser(object):
         if target.project_name is None:
             title = "Cheat Sheet"
         else:
-            title = "The {} Cheat Sheet".format(target.project_name)
+            title = "{} Cheat Sheet".format(target.project_name)
         out = target.header(title)
         pri_blocks = self._files_prioritized()
         for file_block in pri_blocks:
