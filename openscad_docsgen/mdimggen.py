@@ -160,9 +160,12 @@ def mdimggen_main():
             for srcfile in srcfiles:
                 if isinstance(srcfile, str):
                     args.srcfiles.extend(glob.glob(srcfile))
-        if not args.srcfiles:
-            print("No files to parse.  Aborting.", file=sys.stderr)
-            sys.exit(-1)
+    elif platform.system() == 'Windows':
+        args.srcfiles = [file for src_file in args.srcfiles for file in glob.glob(src_file)]
+
+    if not args.srcfiles:
+        print("No files to parse.  Aborting.", file=sys.stderr)
+        sys.exit(-1)
 
     try:
         mdimggen = MarkdownImageGen(args)

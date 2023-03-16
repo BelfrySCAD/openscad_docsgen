@@ -7,6 +7,7 @@ import sys
 import glob
 import os.path
 import argparse
+import platform
 
 from .errorlog import ErrorLog, errorlog
 from .parser import DocsGenParser, DocsGenException
@@ -53,6 +54,8 @@ def processFiles(opts):
 
     if not opts.files:
         opts.files = glob.glob("*.scad")
+    elif platform.system() == 'Windows':
+        opts.files = [file for src_file in opts.files for file in glob.glob(src_file)]
 
     fail = False
     for infile in opts.files:
