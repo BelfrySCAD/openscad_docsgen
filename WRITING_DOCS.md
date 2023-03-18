@@ -980,12 +980,12 @@ To specify what types of files will be generated, you can use the GenerateDocs b
 Where the valid docs file types are as follows:
 
 - `Files`: Generate a documentation file for each .scad input file.  Generates Images.
-- `ToC`: Generate a project-wide Table of Contents file.
-- `Index`: Generate an alphabetically sorted function/module/constants index file.
-- `Topics`: Generate an index file of topics, sorted alphabetically.
-- `CheatSheet`: Generate a CheatSheet summary of function/module Usages.
+- `ToC`: Generate a project-wide Table of Contents file.  (TOC.md)
+- `Index`: Generate an alphabetically sorted function/module/constants index file. (AlphaIndex.md)
+- `Topics`: Generate a index file of topics, sorted alphabetically. (Topics.md)
+- `CheatSheet`: Generate a CheatSheet summary of function/module Usages. (CheatSheet.md)
 - `Cheat`: The same as `CheatSheet`.
-- `Sidebar`: Generate a \_Sidebar index of files.
+- `Sidebar`: Generate a Wiki sidebar index of files. (\_Sidebar.md)
 
 ---
 

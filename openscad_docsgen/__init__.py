@@ -115,7 +115,7 @@ def main():
     parser.add_argument('-m', '--gen-files', action="store_true",
                         help='If given, generate documents for each source file.')
     parser.add_argument('-i', '--gen-index', action="store_true",
-                        help='If given, generate alphabetical Index.md file.')
+                        help='If given, generate AlphaIndex.md file.')
     parser.add_argument('-I', '--gen-topics', action="store_true",
                         help='If given, generate Topics.md topics index file.')
     parser.add_argument('-t', '--gen-toc', action="store_true",

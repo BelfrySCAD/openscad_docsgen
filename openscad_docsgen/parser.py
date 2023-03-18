@@ -48,7 +48,7 @@ class DocsGenParser(object):
         sfx = self.target.get_suffix()
         self.TOCFILE = "TOC" + sfx
         self.TOPICFILE = "Topics" + sfx
-        self.INDEXFILE = "Index" + sfx
+        self.INDEXFILE = "AlphaIndex" + sfx
         self.CHEATFILE = "CheatSheet" + sfx
         self.SIDEBARFILE = "_Sidebar" + sfx
 
@@ -802,7 +802,7 @@ class DocsGenParser(object):
                 f.write(line + "\n")
 
     def write_index_file(self):
-        """Generates the alphabetical function/module/constant Index file from the parsed documentation."""
+        """Generates the alphabetical function/module/constant AlphaIndex file from the parsed documentation."""
         target = self.opts.target
         os.makedirs(target.docs_dir, mode=0o744, exist_ok=True)
         unsorted_items = []
@@ -892,7 +892,7 @@ class DocsGenParser(object):
         footnotes = {}
         out = []
         out.extend(target.line_with_break(target.get_link("Table of Contents", file="TOC", literalize=False)))
-        out.extend(target.line_with_break(target.get_link("Function Index", file="Index", literalize=False)))
+        out.extend(target.line_with_break(target.get_link("Function Index", file="AlphaIndex", literalize=False)))
         out.extend(target.line_with_break(target.get_link("Topics Index", file="Topics", literalize=False)))
         out.extend(target.line_with_break(target.get_link("Cheat Sheet", file="CheatSheet", literalize=False)))
         out.extend(target.line_with_break(target.get_link("Tutorials", file="Tutorials", literalize=False)))
