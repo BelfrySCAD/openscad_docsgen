@@ -39,19 +39,21 @@ class GenericBlock(object):
 
     def sort_children(self, front_blocks=(), back_blocks=()):
         children = []
-        for child in self.children:
-            found = [block for blocks in front_blocks for block in blocks if block in child.title]
-            if found:
-                children.append(child)
+        for blocks in front_blocks:
+            for block in blocks:
+                for child in self.children:
+                    if child.title.startswith(block):
+                        children.append(child)
         blocks = flatten(front_blocks + back_blocks)
         for child in self.children:
-            found = [block for block in blocks if block in child.title]
+            found = [block for block in blocks if child.title.startswith(block)]
             if not found:
                 children.append(child)
-        for child in self.children:
-            found = [block for blocks in back_blocks for block in blocks if block in child.title]
-            if found:
-                children.append(child)
+        for blocks in back_blocks:
+            for block in blocks:
+                for child in self.children:
+                    if child.title.startswith(block):
+                        children.append(child)
         return children
 
     def get_children_by_title(self, titles):
@@ -162,14 +164,27 @@ class TopicsBlock(LabelBlock):
         return out
 
 
-class SeeAlsoBlock(LabelBlock):
+class SynopsisBlock(LabelBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
+        parent.synopsis = subtitle
         super().__init__(title, subtitle, body, origin, parent=parent)
 
     def get_file_lines(self, controller, target):
-        names = [name.strip() for name in self.subtitle.split(",")]
+        sub = self.parse_links(self.subtitle, controller, target)
+        sub = target.escape_entities(sub)
+        out = target.block_header(self.title, sub)
+        return out
+
+
+class SeeAlsoBlock(LabelBlock):
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        self.see_also = [x.strip() for x in subtitle.split(",")]
+        parent.see_also = self.see_also
+        super().__init__(title, subtitle, body, origin, parent=parent)
+
+    def get_file_lines(self, controller, target):
         items = []
-        for name in names:
+        for name in self.see_also:
             if name not in controller.items_by_name:
                 msg = "Invalid Link '{0}'".format(name)
                 errorlog.add_entry(self.origin.file, self.origin.line, msg, ErrorLog.FAIL)
@@ -600,6 +615,7 @@ class ItemBlock(LabelBlock):
         self.topics = []
         self.aliases = []
         self.see_also = []
+        self.synopsis = ""
 
     def __str__(self):
         return "{}: {}".format(
@@ -626,6 +642,7 @@ class ItemBlock(LabelBlock):
             d["deprecated"] = True
         d["topics"] = self.topics
         d["aliases"] = self.aliases
+        d["synopsis"] = self.synopsis
         d["see_also"] = self.see_also
         d["description"] = [
             line
@@ -648,7 +665,7 @@ class ItemBlock(LabelBlock):
             item.body
             for item in self.children if item.title.startswith("Example")
         ]
-        skip_titles = ["Alias", "Aliases", "Arguments", "Description", "See Also", "Status", "Topics", "Usage"]
+        skip_titles = ["Alias", "Aliases", "Arguments", "Description", "See Also", "Synopsis", "Status", "Topics", "Usage"]
         d["children"] = list(filter(lambda x: x["name"] not in skip_titles and not x["name"].startswith("Example"), d["children"]))
         return d
 
@@ -657,7 +674,13 @@ class ItemBlock(LabelBlock):
         return out
 
     def get_toc_lines(self, target, n=1, currfile=""):
-        out = target.bullet_list_item(self.get_link(target, currfile=currfile))
+        out = target.bullet_list_item(
+            "{}{}{}".format(
+                self.get_link(target, currfile=currfile),
+                " – " if self.synopsis else "",
+                target.escape_entities(self.synopsis),
+            )
+        )
         return out
 
     def get_cheatsheet_lines(self, controller, target):
@@ -698,14 +721,14 @@ class ItemBlock(LabelBlock):
 
     def get_file_lines(self, controller, target):
         front_blocks = [
-            ["Alias"],
-            ["Aliases"],
             ["Status"],
+            ["Alias"],
+            ["Synopsis"],
             ["Topics"],
+            ["See Also"],
             ["Usage"]
         ]
         back_blocks = [
-            ["See Also"],
             ["Example"]
         ]
         children = self.sort_children(front_blocks, back_blocks)

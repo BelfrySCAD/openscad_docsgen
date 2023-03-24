@@ -157,11 +157,9 @@ class DocsGenParser(object):
         else:
             raise DocsGenException("DefineHeader", "Could not parse target block type, while declaring block:")
 
-    def _mkfilenode(self, origin):
+    def _check_filenode(self, title, origin):
         if not self.curr_file_block:
-            self.curr_file_block = FileBlock("LibFile", origin.file, [], origin)
-            self.curr_parent = self.curr_file_block
-            self.file_blocks.append(self.curr_file_block)
+            raise DocsGenException(title, "Must declare File or Libfile block before declaring block:")
 
     def _parse_block(self, lines, line_num=0, src_file=None):
         line_num = self._skip_lines(lines, line_num)
@@ -290,7 +288,7 @@ class DocsGenParser(object):
                 raise DocsGenException(title, "Must declare File or LibFile block before declaring block:")
 
             elif title == "Section":
-                self._mkfilenode(origin)
+                self._check_filenode(title, origin)
                 self.curr_section = SectionBlock(title, subtitle, body, origin, parent=self.curr_file_block)
                 self.curr_subsection = None
                 self.curr_parent = self.curr_section
@@ -302,38 +300,38 @@ class DocsGenParser(object):
                 self.curr_subsection = SubsectionBlock(title, subtitle, body, origin, parent=self.curr_section)
                 self.curr_parent = self.curr_subsection
             elif title == "Includes":
-                self._mkfilenode(origin)
+                self._check_filenode(title, origin)
                 IncludesBlock(title, subtitle, body, origin, parent=self.curr_file_block)
             elif title == "FileSummary":
                 if not subtitle:
                     raise DocsGenException(title, "Must provide a subtitle when declaring block:")
-                self._mkfilenode(origin)
+                self._check_filenode(title, origin)
                 self.curr_file_block.summary = subtitle.strip()
             elif title == "FileGroup":
                 if not subtitle:
                     raise DocsGenException(title, "Must provide a subtitle when declaring block:")
-                self._mkfilenode(origin)
+                self._check_filenode(title, origin)
                 self.curr_file_block.group = subtitle.strip()
             elif title == "FileFootnotes":
                 if not subtitle:
                     raise DocsGenException(title, "Must provide a subtitle when declaring block:")
-                self._mkfilenode(origin)
+                self._check_filenode(title, origin)
                 self.curr_file_block.footnotes = []
                 for part in subtitle.split(";"):
                     fndata = [x.strip() for x in part.strip().split('=',1)]
                     fndata.append(origin)
                     self.curr_file_block.footnotes.append(fndata)
             elif title == "CommonCode":
-                self._mkfilenode(origin)
+                self._check_filenode(title, origin)
                 self.curr_file_block.common_code.extend(body)
             elif title == "Figure":
-                self._mkfilenode(origin)
+                self._check_filenode(title, origin)
                 FigureBlock(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
             elif title == "Example":
                 if self.curr_item:
                     ExampleBlock(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
             elif title == "Figures":
-                self._mkfilenode(origin)
+                self._check_filenode(title, origin)
                 for lnum, line in enumerate(body):
                     FigureBlock("Figure", subtitle, [line], origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
                     subtitle = ""
@@ -355,7 +353,7 @@ class DocsGenParser(object):
                         cb(title, subtitle, body, origin, meta)
 
             elif title in ["Constant", "Function", "Module", "Function&Module"]:
-                self._mkfilenode(origin)
+                self._check_filenode(title, origin)
                 if not self.curr_section:
                     self.curr_section = SectionBlock("Section", "", [], origin, parent=self.curr_file_block)
                 parent = self.curr_parent = self.curr_section
@@ -373,6 +371,9 @@ class DocsGenParser(object):
             elif title == "See Also":
                 if self.curr_item:
                     SeeAlsoBlock(title, subtitle, body, origin, parent=parent)
+            elif title == "Synopsis":
+                if self.curr_item:
+                    SynopsisBlock(title, subtitle, body, origin, parent=parent)
             else:
                 raise DocsGenException(title, "Unrecognized block:")
 
@@ -408,6 +409,7 @@ class DocsGenParser(object):
             "topics": ["Testing", "Metasyntactic"],
             "aliases": ["foob()", "feeb()"],
             "see_also": ["barbaz()", "bazqux()"],
+            "synopsis": "This function does bar.",
             "usages": [
                 {
                     "subtitle": "As function",
@@ -496,6 +498,7 @@ class DocsGenParser(object):
                                 "topics": ["Testing", "Metasyntactic"],
                                 "aliases": ["foob()", "feeb()"],
                                 "see_also": ["barbaz()", "bazqux()"],
+                                "synopsis": "This function does bar.",
                                 "usages": [
                                     {
                                         "subtitle": "As function",
@@ -785,9 +788,10 @@ class DocsGenParser(object):
                 for name, item in sorted_items:
                     out.extend(
                         target.bullet_list_item(
-                            "{} (in {})".format(
+                            "{}{}{}".format(
                                 item.get_link(target, label=name, currfile=self.TOPICFILE),
-                                target.escape_entities(item.origin.file)
+                                " – " if item.synopsis else "",
+                                target.escape_entities(item.synopsis)
                             )
                         )
                     )
@@ -837,9 +841,10 @@ class DocsGenParser(object):
         ]))
         for ltr in ltrs_found:
             items = [
-                "{} (in {})".format(
+                "{}{}{}".format(
                     item.get_link(target, label=name, currfile=self.INDEXFILE),
-                    target.escape_entities(item.origin.file)
+                    " – " if item.synopsis else "",
+                    target.escape_entities(item.synopsis)
                 )
                 for name, item in index_by_letter[ltr]
             ]
