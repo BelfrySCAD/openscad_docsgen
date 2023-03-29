@@ -11,7 +11,7 @@ import subprocess
 from collections import namedtuple
 
 from PIL import Image, ImageChops
-from openscad_runner import RenderMode, OpenScadRunner
+from openscad_runner import RenderMode, OpenScadRunner, ColorScheme
 
 
 class ImageRequest(object):
@@ -22,6 +22,7 @@ class ImageRequest(object):
     _vpt_re = re.compile(r'VPT *= *\[([^]]+)\]')
     _vpr_re = re.compile(r'VPR *= *\[([^]]+)\]')
     _vpd_re = re.compile(r'VPD *= *([0-9]+)')
+    _color_scheme_re = re.compile(r'ColorScheme *= *([a-zA-Z0-9 ]+)')
 
     def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False):
         self.src_file = src_file
@@ -43,6 +44,7 @@ class ImageRequest(object):
         self.show_scales = "NoScales" not in image_meta
         self.orthographic = "Perspective" not in image_meta
         self.script_under = False
+        self.color_scheme = ColorScheme.cornfield.value
 
         if "ThrownTogether" in image_meta:
             self.render_mode = RenderMode.thrown_together
@@ -106,6 +108,10 @@ class ImageRequest(object):
         match = self._frames_re.search(image_meta)
         if match:
             self.animation_frames = int(match.group(1))
+
+        color_scheme_match = self._color_scheme_re.search(image_meta)
+        if color_scheme_match:
+            self.color_scheme = color_scheme_match.group(1)
 
         longest = max(len(line) for line in self.script_lines)
         maxlen = (880 - self.imgsize[0]) / 9
@@ -204,6 +210,7 @@ class ImageManager(object):
                 camera=req.camera,
                 auto_center=no_vp,
                 view_all=no_vp,
+                color_scheme = req.color_scheme,
                 show_edges=req.show_edges,
                 show_axes=req.show_axes,
                 show_scales=req.show_scales,
