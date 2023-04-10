@@ -8,6 +8,7 @@ import yaml
 import glob
 import os.path
 import argparse
+import platform
 
 from .errorlog import errorlog, ErrorLog
 from .imagemanager import image_manager
