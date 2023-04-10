@@ -724,6 +724,11 @@ metadata directives:
 - `Edges`: Highlight face edges.
 - `NoAxes`: Hides the axes and scales.
 - `ScriptUnder`: Display script text under image, rather than beside it.
+- `ColorScheme`: Generate the image using a specific color scheme
+  - Usage: `ColorScheme=<color scheme name>` (e.g. `ColorScheme=BeforeDawn`)
+  - Default color scheme: `Cornfield`
+  - Predefined color schemes: `Cornfield`, `Metallic`, `Sunset`, `Starnight`, `BeforeDawn`, `Nature`, `DeepOcean`, `Solarized`, `Tomorrow`, `Tomorrow Night`, `Monotone`
+  - Color schemes defined as a [Read-only Resource](https://github.com/openscad/openscad/wiki/Path-locations#read-only-resources) or [User Resource](https://github.com/openscad/openscad/wiki/Path-locations#user-resources) are also supported.
 
 Modules will default to generating and displaying the image as if the `3D`
 directive is given.  Functions and constants will default to not generating
