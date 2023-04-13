@@ -116,10 +116,10 @@ class GenericBlock(object):
                 out.append(self.parse_links(line, controller, target))
         return out
 
-    def get_tocfile_lines(self, target, n=1, currfile=""):
+    def get_tocfile_lines(self, controller, target, n=1, currfile=""):
         return []
 
-    def get_toc_lines(self, target, n=1, currfile=""):
+    def get_toc_lines(self, controller, target, n=1, currfile=""):
         return []
 
     def get_cheatsheet_lines(self, controller, target):
@@ -337,7 +337,7 @@ class FileBlock(GenericBlock):
             literalize=False
         )
 
-    def get_tocfile_lines(self, target, n=1, currfile=""):
+    def get_tocfile_lines(self, controller, target, n=1, currfile=""):
         sections = [
             sect for sect in self.children
             if isinstance(sect, SectionBlock)
@@ -352,11 +352,11 @@ class FileBlock(GenericBlock):
                 out.extend(target.line_with_break(target.italics(note)))
         out.extend(target.bullet_list_start())
         for n, sect in enumerate(sections):
-            out.extend(sect.get_tocfile_lines(target, n=n+1, currfile=currfile))
+            out.extend(sect.get_tocfile_lines(controller, target, n=n+1, currfile=currfile))
         out.extend(target.bullet_list_end())
         return out
 
-    def get_toc_lines(self, target, n=1, currfile=""):
+    def get_toc_lines(self, controller, target, n=1, currfile=""):
         sections = [
             sect for sect in self.children
             if isinstance(sect, SectionBlock)
@@ -364,7 +364,7 @@ class FileBlock(GenericBlock):
         out = []
         out.extend(target.numbered_list_start())
         for n, sect in enumerate(sections):
-            out.extend(sect.get_toc_lines(target, n=n+1, currfile=currfile))
+            out.extend(sect.get_toc_lines(controller, target, n=n+1, currfile=currfile))
         out.extend(target.numbered_list_end())
         return out
 
@@ -385,7 +385,7 @@ class FileBlock(GenericBlock):
             if not isinstance(child, SectionBlock):
                 out.extend(child.get_file_lines(controller, target))
         out.extend(target.header("Table of Contents", lev=target.SECTION))
-        out.extend(self.get_toc_lines(target, currfile=self.origin.file))
+        out.extend(self.get_toc_lines(controller, target, currfile=self.origin.file))
         for child in self.children:
             if isinstance(child, SectionBlock):
                 out.extend(child.get_file_lines(controller, target))
@@ -423,7 +423,7 @@ class SectionBlock(GenericBlock):
             literalize=False
         )
 
-    def get_tocfile_lines(self, target, n=1, currfile=""):
+    def get_tocfile_lines(self, controller, target, n=1, currfile=""):
         """
         Return the markdown table of contents lines for the children in this
         section. This is returned as a series of bullet points.
@@ -437,13 +437,13 @@ class SectionBlock(GenericBlock):
             if subsects:
                 out.extend(target.bullet_list_start())
                 for child in subsects:
-                    out.extend(target.indent_lines(child.get_tocfile_lines(target, currfile=currfile)))
+                    out.extend(target.indent_lines(child.get_tocfile_lines(controller, target, currfile=currfile)))
                 out.extend(target.bullet_list_end())
             out.extend(
                 target.indent_lines(
                     target.bullet_list(
                         flatten([
-                            child.get_tocfile_lines(target, currfile=currfile)
+                            child.get_tocfile_lines(controller, target, currfile=currfile)
                             for child in self.get_children_by_title(
                                 ["Constant","Function","Module","Function&Module"]
                             )
@@ -453,12 +453,12 @@ class SectionBlock(GenericBlock):
             )
         else:
             for child in self.get_children_by_title("Subsection"):
-                out.extend(child.get_tocfile_lines(target, currfile=currfile))
+                out.extend(child.get_tocfile_lines(controller, target, currfile=currfile))
             out.extend(
                 target.indent_lines(
                     target.bullet_list(
                         flatten([
-                            child.get_tocfile_lines(target, currfile=currfile)
+                            child.get_tocfile_lines(controller, target, currfile=currfile)
                             for child in self.get_children_by_title(
                                 ["Constant","Function","Module","Function&Module"]
                             )
@@ -468,7 +468,7 @@ class SectionBlock(GenericBlock):
             )
         return out
 
-    def get_toc_lines(self, target, n=1, currfile=""):
+    def get_toc_lines(self, controller, target, n=1, currfile=""):
         """
         Return the markdown table of contents lines for the children in this
         section. This is returned as a series of bullet points.
@@ -479,10 +479,10 @@ class SectionBlock(GenericBlock):
         if subsects:
             lines.extend(target.numbered_list_start())
             for num, child in enumerate(subsects):
-                lines.extend(child.get_toc_lines(target, currfile=currfile, n=num+1))
+                lines.extend(child.get_toc_lines(controller, target, currfile=currfile, n=num+1))
             lines.extend(target.numbered_list_end())
         for child in self.get_children_by_title(["Constant","Function","Module","Function&Module"]):
-            lines.extend(child.get_toc_lines(target, currfile=currfile))
+            lines.extend(child.get_toc_lines(controller, target, currfile=currfile))
         out = []
         if self.subtitle:
             item = self.get_link(target, currfile=currfile)
@@ -547,7 +547,7 @@ class SubsectionBlock(GenericBlock):
             literalize=False
         )
 
-    def get_tocfile_lines(self, target, n=1, currfile=""):
+    def get_tocfile_lines(self, controller, target, n=1, currfile=""):
         """
         Return the markdown table of contents lines for the children in this
         subsection. This is returned as a series of bullet points.
@@ -562,7 +562,7 @@ class SubsectionBlock(GenericBlock):
                 target.indent_lines(
                     target.bullet_list(
                         flatten([
-                            child.get_tocfile_lines(target, currfile=currfile)
+                            child.get_tocfile_lines(controller, target, currfile=currfile)
                             for child in items
                         ])
                     )
@@ -570,7 +570,7 @@ class SubsectionBlock(GenericBlock):
             )
         return out
 
-    def get_toc_lines(self, target, n=1, currfile=""):
+    def get_toc_lines(self, controller, target, n=1, currfile=""):
         """
         Return the markdown table of contents lines for the children in this
         subsection. This is returned as a series of bullet points.
@@ -578,7 +578,7 @@ class SubsectionBlock(GenericBlock):
         """
         lines = []
         for child in self.get_children_by_title(["Constant","Function","Module","Function&Module"]):
-            lines.extend(child.get_toc_lines(target, currfile=currfile))
+            lines.extend(child.get_toc_lines(controller, target, currfile=currfile))
         out = []
         if self.subtitle:
             item = self.get_link(target, currfile=currfile)
@@ -693,24 +693,29 @@ class ItemBlock(LabelBlock):
         d["children"] = list(filter(lambda x: x["name"] not in skip_titles and not x["name"].startswith("Example"), d["children"]))
         return d
 
-    def get_tocfile_lines(self, target, n=1, currfile=""):
+    def get_synopsis(self, controller, target):
+        sub = self.parse_links(self.synopsis, controller, target)
+        out = "{}{}{}".format(
+            " – " if self.synopsis or self.syntags else "",
+            target.escape_entities(sub),
+            target.mouseover_tags(self.syntags),
+        )
+        return out
+
+    def get_tocfile_lines(self, controller, target, n=1, currfile=""):
         out = [
-            "{}{}{}{}".format(
+            "{}{}".format(
                 self.get_link(target, currfile=currfile),
-                " – " if self.synopsis or self.syntags else "",
-                target.escape_entities(self.synopsis),
-                target.mouseover_tags(self.syntags),
+                self.get_synopsis(controller, target),
             )
         ]
         return out
 
-    def get_toc_lines(self, target, n=1, currfile=""):
+    def get_toc_lines(self, controller, target, n=1, currfile=""):
         out = target.bullet_list_item(
-            "{}{}{}{}".format(
+            "{}{}".format(
                 self.get_link(target, currfile=currfile),
-                " – " if self.synopsis or self.syntags else "",
-                target.escape_entities(self.synopsis),
-                target.mouseover_tags(self.syntags),
+                self.get_synopsis(controller, target),
             )
         )
         return out

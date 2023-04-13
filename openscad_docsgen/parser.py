@@ -747,7 +747,7 @@ class DocsGenParser(object):
             out.append("")
 
         for fnum, fblock in enumerate(prifiles):
-            out.extend(fblock.get_tocfile_lines(self.opts.target, n=fnum+1, currfile=self.TOCFILE))
+            out.extend(fblock.get_tocfile_lines(self, self.opts.target, n=fnum+1, currfile=self.TOCFILE))
 
         out = target.postprocess(out)
         outfile = os.path.join(target.docs_dir, self.TOCFILE)
@@ -811,11 +811,9 @@ class DocsGenParser(object):
                 for name, item in sorted_items:
                     out.extend(
                         target.bullet_list_item(
-                            "{}{}{}{}".format(
+                            "{}{}".format(
                                 item.get_link(target, label=name, currfile=self.TOPICFILE),
-                                " – " if item.synopsis or item.syntags else "",
-                                target.escape_entities(item.synopsis),
-                                target.mouseover_tags(item.syntags),
+                                item.get_synopsis(self, target),
                             )
                         )
                     )
@@ -865,11 +863,9 @@ class DocsGenParser(object):
         ]))
         for ltr in ltrs_found:
             items = [
-                "{}{}{}{}".format(
+                "{}{}".format(
                     item.get_link(target, label=name, currfile=self.INDEXFILE),
-                    " – " if item.synopsis or item.syntags else "",
-                    target.escape_entities(item.synopsis),
-                    target.mouseover_tags(item.syntags),
+                    item.get_synopsis(self, target),
                 )
                 for name, item in index_by_letter[ltr]
             ]
