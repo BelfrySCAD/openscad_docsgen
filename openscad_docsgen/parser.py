@@ -44,6 +44,7 @@ class DocsGenParser(object):
         self.priority_files = []
         self.priority_groups = []
         self.items_by_name = {}
+        self.syntags_data = {}
 
         sfx = self.target.get_suffix()
         self.TOCFILE = "TOC" + sfx
@@ -274,6 +275,16 @@ class DocsGenParser(object):
                             self.opts.gen_sidebar = True
                         else:
                             raise DocsGenException(title, 'Unknown type "{}", while declaring block:'.format(orig_part))
+            elif title == "DefineSynTags":
+                if origin.file != self.RCFILE:
+                    raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
+                if subtitle:
+                    raise DocsGenException(title, "Subtitle not supported, while declaring block:")
+                for line in body:
+                    if '=' not in line:
+                        raise DocsGenException(title, "Malformed tag definition '{}' while declaring block:".format(line))
+                    tag, text = [x.strip() for x in line.split("=",1)]
+                    self.syntags_data[tag] = text
             elif title == "vim" or title == "emacs":
                 pass  # Ignore vim and emacs modelines
             elif title in ["File", "LibFile"]:
@@ -365,15 +376,18 @@ class DocsGenParser(object):
                 self.items_by_name[subtitle] = item
                 self.curr_item = item
                 self.curr_parent = item
+            elif title == "Synopsis":
+                if self.curr_item:
+                    SynopsisBlock(title, subtitle, body, origin, parent=parent)
+            elif title == "SynTags":
+                if self.curr_item:
+                    SynTagsBlock(title, subtitle, body, origin, parent=parent, syntags_data=self.syntags_data)
             elif title == "Topics":
                 if self.curr_item:
                     TopicsBlock(title, subtitle, body, origin, parent=parent)
             elif title == "See Also":
                 if self.curr_item:
                     SeeAlsoBlock(title, subtitle, body, origin, parent=parent)
-            elif title == "Synopsis":
-                if self.curr_item:
-                    SynopsisBlock(title, subtitle, body, origin, parent=parent)
             else:
                 raise DocsGenException(title, "Unrecognized block:")
 
@@ -410,6 +424,10 @@ class DocsGenParser(object):
             "aliases": ["foob()", "feeb()"],
             "see_also": ["barbaz()", "bazqux()"],
             "synopsis": "This function does bar.",
+            "syntags": {
+                "VNF": "Returns a VNF when called as a function.",
+                "Geom": "Returns Geometry when called as a module."
+            },
             "usages": [
                 {
                     "subtitle": "As function",
@@ -499,6 +517,10 @@ class DocsGenParser(object):
                                 "aliases": ["foob()", "feeb()"],
                                 "see_also": ["barbaz()", "bazqux()"],
                                 "synopsis": "This function does bar.",
+                                "syntags": {
+                                    "VNF": "Returns a VNF when called as a function.",
+                                    "Geom": "Returns Geometry when called as a module."
+                                },
                                 "usages": [
                                     {
                                         "subtitle": "As function",
@@ -701,7 +723,8 @@ class DocsGenParser(object):
                 anch = target.header_link("{}. {}".format(fnum+1, file))
                 link = target.get_link(file, anchor=anch, literalize=False)
                 filelink = target.get_link("docs", file=file, literalize=False)
-                marks = target.footnote_marks(fblock.footnotes)
+                tags = {tag: text for tag, text, origin in fblock.footnotes}
+                marks = target.mouseover_tags(tags, "#file-footnotes")
                 out.extend(target.bullet_list_item("{} ({}){}".format(link, filelink, marks)))
                 out.append(fblock.summary)
                 for mark, note, origin in fblock.footnotes:
@@ -788,10 +811,11 @@ class DocsGenParser(object):
                 for name, item in sorted_items:
                     out.extend(
                         target.bullet_list_item(
-                            "{}{}{}".format(
+                            "{}{}{}{}".format(
                                 item.get_link(target, label=name, currfile=self.TOPICFILE),
-                                " – " if item.synopsis else "",
-                                target.escape_entities(item.synopsis)
+                                " – " if item.synopsis or item.syntags else "",
+                                target.escape_entities(item.synopsis),
+                                target.mouseover_tags(item.syntags),
                             )
                         )
                     )
@@ -841,10 +865,11 @@ class DocsGenParser(object):
         ]))
         for ltr in ltrs_found:
             items = [
-                "{}{}{}".format(
+                "{}{}{}{}".format(
                     item.get_link(target, label=name, currfile=self.INDEXFILE),
-                    " – " if item.synopsis else "",
-                    target.escape_entities(item.synopsis)
+                    " – " if item.synopsis or item.syntags else "",
+                    target.escape_entities(item.synopsis),
+                    target.mouseover_tags(item.syntags),
                 )
                 for name, item in index_by_letter[ltr]
             ]
@@ -921,12 +946,13 @@ class DocsGenParser(object):
                             raise DocsGenException("FileFootnotes", 'Footnote "{}" conflicts with previous definition "{}", while declaring block:'.format(note, footnotes[mark]))
                     except DocsGenException as e:
                         errorlog.add_entry(origin.file, origin.line, str(e), ErrorLog.FAIL)
-                marks = target.footnote_marks(fblock.footnotes)
+                tags = {tag: text for tag, text, origin in fblock.footnotes}
+                marks = target.mouseover_tags(tags, "#footnotes")
                 out.extend(target.bullet_list_item("{}{}".format(link, marks)))
             out.extend(target.bullet_list_end())
         if footmarks:
             out.append("")
-            out.extend(target.header("File Footnotes:", lev=target.SUBSECTION))
+            out.extend(target.header("Footnotes:", lev=target.SUBSECTION))
             for mark in footmarks:
                 out.append("{} = {}  ".format(mark, note))
 

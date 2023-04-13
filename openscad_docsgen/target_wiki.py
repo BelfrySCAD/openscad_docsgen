@@ -58,11 +58,17 @@ class Target_Wiki(object):
         lines.append("")
         return lines
 
-    def footnote_marks(self, footnotes):
-        out = ""
-        for mark, note, origin in footnotes:
-            marks = ' <sup title="{1}">[{0}](#file-footnotes)</sup>'.format(mark, note)
-            out = out + marks
+    def mouseover_tags(self, tags, file=None):
+        if not file:
+            fmt = '&nbsp;<sup title="{1}" style="color: #077;">\[{0}\]</sup>'
+        elif '#' in file:
+            fmt = '&nbsp;<sup title="{1}">[\[{0}\]]({2})</sup>'
+        else:
+            fmt = '&nbsp;<sup title="{1}">[\[{0}\]]({2}#{0})</sup>'
+        out = "".join(
+            fmt.format(tag, text, file)
+            for tag, text in tags.items()
+        )
         return out
 
     def header_link(self, name):
@@ -156,7 +162,7 @@ class Target_Wiki(object):
     def bullet_list(self, items):
         out = self.bullet_list_start()
         for item in items:
-            out.extend(self.bullet_list_item(self.escape_entities(item)))
+            out.extend(self.bullet_list_item(item))
         out.extend(self.bullet_list_end())
         return out
 

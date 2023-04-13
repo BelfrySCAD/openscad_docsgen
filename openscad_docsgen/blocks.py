@@ -148,6 +148,30 @@ class LabelBlock(GenericBlock):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
 
+class SynopsisBlock(LabelBlock):
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        parent.synopsis = subtitle
+        super().__init__(title, subtitle, body, origin, parent=parent)
+
+    def get_file_lines(self, controller, target):
+        sub = self.parse_links(self.subtitle, controller, target)
+        sub = target.escape_entities(sub)
+        out = target.block_header(self.title, sub)
+        out += target.mouseover_tags(self.parent.syntags)
+        return out
+
+
+class SynTagsBlock(LabelBlock):
+    def __init__(self, title, subtitle, body, origin, parent, syntags_data={}):
+        tags = [x.strip() for x in subtitle.split(",")]
+        for tag in tags:
+            parent.syntags[tag] = syntags_data[tag]
+        super().__init__(title, subtitle, body, origin, parent=parent)
+
+    def get_file_lines(self, controller, target):
+        return []
+
+
 class TopicsBlock(LabelBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
@@ -161,18 +185,6 @@ class TopicsBlock(LabelBlock):
         ]
         links = ", ".join(links)
         out = target.block_header(self.title, links)
-        return out
-
-
-class SynopsisBlock(LabelBlock):
-    def __init__(self, title, subtitle, body, origin, parent=None):
-        parent.synopsis = subtitle
-        super().__init__(title, subtitle, body, origin, parent=parent)
-
-    def get_file_lines(self, controller, target):
-        sub = self.parse_links(self.subtitle, controller, target)
-        sub = target.escape_entities(sub)
-        out = target.block_header(self.title, sub)
         return out
 
 
@@ -428,24 +440,32 @@ class SectionBlock(GenericBlock):
                     out.extend(target.indent_lines(child.get_tocfile_lines(target, currfile=currfile)))
                 out.extend(target.bullet_list_end())
             out.extend(
-                target.indent_lines([
-                    " ".join(
-                        " ".join(child.get_tocfile_lines(target, currfile=currfile))
-                        for child in self.get_children_by_title(
-                            ["Constant","Function","Module","Function&Module"]
-                        )
+                target.indent_lines(
+                    target.bullet_list(
+                        flatten([
+                            child.get_tocfile_lines(target, currfile=currfile)
+                            for child in self.get_children_by_title(
+                                ["Constant","Function","Module","Function&Module"]
+                            )
+                        ])
                     )
-                ])
+                )
             )
         else:
             for child in self.get_children_by_title("Subsection"):
                 out.extend(child.get_tocfile_lines(target, currfile=currfile))
-            out.append(" ".join(
-                " ".join(child.get_tocfile_lines(target, currfile=currfile))
-                for child in self.get_children_by_title(
-                    ["Constant","Function","Module","Function&Module"]
+            out.extend(
+                target.indent_lines(
+                    target.bullet_list(
+                        flatten([
+                            child.get_tocfile_lines(target, currfile=currfile)
+                            for child in self.get_children_by_title(
+                                ["Constant","Function","Module","Function&Module"]
+                            )
+                        ])
+                    )
                 )
-            ))
+            )
         return out
 
     def get_toc_lines(self, target, n=1, currfile=""):
@@ -539,12 +559,14 @@ class SubsectionBlock(GenericBlock):
         items = self.get_children_by_title(["Constant","Function","Module","Function&Module"])
         if items:
             out.extend(
-                target.indent_lines([
-                    " ".join(
-                        " ".join(child.get_tocfile_lines(target, currfile=currfile))
-                        for child in items
+                target.indent_lines(
+                    target.bullet_list(
+                        flatten([
+                            child.get_tocfile_lines(target, currfile=currfile)
+                            for child in items
+                        ])
                     )
-                ])
+                )
             )
         return out
 
@@ -616,6 +638,7 @@ class ItemBlock(LabelBlock):
         self.aliases = []
         self.see_also = []
         self.synopsis = ""
+        self.syntags = {}
 
     def __str__(self):
         return "{}: {}".format(
@@ -643,6 +666,7 @@ class ItemBlock(LabelBlock):
         d["topics"] = self.topics
         d["aliases"] = self.aliases
         d["synopsis"] = self.synopsis
+        d["syntags"] = self.syntags
         d["see_also"] = self.see_also
         d["description"] = [
             line
@@ -665,20 +689,28 @@ class ItemBlock(LabelBlock):
             item.body
             for item in self.children if item.title.startswith("Example")
         ]
-        skip_titles = ["Alias", "Aliases", "Arguments", "Description", "See Also", "Synopsis", "Status", "Topics", "Usage"]
+        skip_titles = ["Alias", "Aliases", "Arguments", "Description", "See Also", "Synopsis", "SynTags", "Status", "Topics", "Usage"]
         d["children"] = list(filter(lambda x: x["name"] not in skip_titles and not x["name"].startswith("Example"), d["children"]))
         return d
 
     def get_tocfile_lines(self, target, n=1, currfile=""):
-        out = [self.get_link(target, currfile=currfile)]
+        out = [
+            "{}{}{}{}".format(
+                self.get_link(target, currfile=currfile),
+                " – " if self.synopsis or self.syntags else "",
+                target.escape_entities(self.synopsis),
+                target.mouseover_tags(self.syntags),
+            )
+        ]
         return out
 
     def get_toc_lines(self, target, n=1, currfile=""):
         out = target.bullet_list_item(
-            "{}{}{}".format(
+            "{}{}{}{}".format(
                 self.get_link(target, currfile=currfile),
-                " – " if self.synopsis else "",
+                " – " if self.synopsis or self.syntags else "",
                 target.escape_entities(self.synopsis),
+                target.mouseover_tags(self.syntags),
             )
         )
         return out
