@@ -350,6 +350,7 @@ Which outputs Markdown code that renders like:
 The `Function&Module` header is used to document a function which has a related module of the same name.  It should have a Description sub-block.  It is recommended to also have Usage, Arguments, and Example/Examples sub-blocks. You should have Usage blocks for both calling as a function, and calling as a module.  Usage sub-block body lines are also used in constructing the Cheat Sheet index file:
 
     // Function&Module: oval()
+    // Synopsis: Creates an Ovel shape.
     // Topics: 2D Shapes, Geometry
     // Usage: As a Module
     //   oval(rx,ry);
@@ -375,6 +376,7 @@ The `Function&Module` header is used to document a function which has a related 
 Which outputs Markdown code that renders like:
 
 > ### Function&Module: oval()
+> **Synopsis:** Creates an oval shape.
 > **Topics:** 2D Shapes, Geometry
 >
 > **Usage:** As a Module
@@ -414,13 +416,15 @@ These Type blocks can have a number of sub-blocks.  Most sub-blocks are optional
 
 - `// Aliases: alternatename(), anothername()`
 - `// Status: DEPRECATED`
+- `// Synopsis: A short description.`
+- `// SynTags: VNF, Geom`
 - `// Topics: Comma, Delimited, Topic, List`
+- `// See Also: otherfunc(), othermod(), OTHERCONST`
 - `// Usage:`
 - `// Description:`
 - `// Figure:` or `// Figures`
 - `// Continues:`
 - `// Arguments:`
-- `// See Also: otherfunc(), othermod(), OTHERCONST`
 - `// Example:` or `// Examples:`
 
 
@@ -449,6 +453,41 @@ Which outputs Markdown code that renders like:
 > **Status:** DEPRECATED, use foo() instead
 
 
+Synopsis Block
+--------------
+
+The Synopsis block gives a short one-line description of the current function or module.  This is shown in various indices:
+
+    // Synopsis: A short one-line description.
+
+Which outputs Markdown code that renders like:
+
+> **Synopsis:** A short one-line description.
+
+
+SynTags Block
+-------------
+
+The SynTags block can be used with the Synopsis block, and the DefineSynTags configuration file block,
+to allow you to add hover-text tags to the end of Synopsis lines.  This is shown in various indices:
+
+In the .openscad_docsgen_rc config file:
+
+    DefineSynTags:
+      VNF = Can return an VNF when called as a function.
+      Geom = Can return geometry when called as a module.
+      Path = Can return a Path when called as a function.
+
+In scadfile documentation:
+
+    // Synopsis: Creates a weird shape.
+    // SynTags: VNF, Geom
+
+Which outputs Markdown code that renders like:
+
+> **Synopsis:** Creates a weird shape. \[<abbr title="Can return an VNF when called as a function.">VNF</abbr>\] \[<abbr title="Can return geometry when called as a module.">Geom</abbr>\]
+
+
 Topics Block
 ------------
 
@@ -459,6 +498,19 @@ The Topics block can associate various topics with the current function or modul
 Which outputs Markdown code that renders like:
 
 > **Topics:** 2D Shapes, Geometry, Masks
+
+
+See Also Block
+--------------
+
+The See Also block is used to give links to related functions, modules, or
+constants.  It looks like:
+
+    // See Also: relatedfunc(), similarmodule()
+
+Which outputs Markdown code that renders like:
+
+> **See Also:** [relatedfunc()](otherfile.scad#relatedfunc), [similarmodule()](otherfile.scad#similarmodule)
 
 
 Usage Block
@@ -569,19 +621,6 @@ Which outputs Markdown code that renders like:
 > `fast`         | If true, use fast, but less accurate calculation method. 
 > `bar`          | Takes an optional `bar` struct.  See [bar()](foobar.scad#function-bar).
 > `dflt`         | Default value.
-
-
-See Also Block
---------------
-
-The See Also block is used to give links to related functions, modules, or
-constants.  It looks like:
-
-    // See Also: relatedfunc(), similarmodule()
-
-Which outputs Markdown code that renders like:
-
-> **See Also:** [relatedfunc()](otherfile.scad#relatedfunc), [similarmodule()](otherfile.scad#similarmodule)
 
 
 Figure Block
@@ -1014,6 +1053,15 @@ To prioritize the ordering of files when generating the Table of Contents and ot
     PrioritizeFiles:
       file1.scad
       file2.scad
+
+---
+
+You can define SynTags tags using the DefineSynTags block:
+
+    DefineSynTags:
+      Geom = Can return geometry when called as a module.
+      Path = Can return a Path when called as a function.
+      VNF = Can return a VNF when called as a function.
 
 ---
 

@@ -155,9 +155,8 @@ class SynopsisBlock(LabelBlock):
 
     def get_file_lines(self, controller, target):
         sub = self.parse_links(self.subtitle, controller, target)
-        sub = target.escape_entities(sub)
-        out = target.block_header(self.title, sub)
-        out += target.mouseover_tags(self.parent.syntags)
+        sub = target.escape_entities(sub) + target.mouseover_tags(self.parent.syntags, htag="abbr")
+        out = target.block_header(self.title, sub, escsub=False)
         return out
 
 
@@ -698,7 +697,7 @@ class ItemBlock(LabelBlock):
         out = "{}{}{}".format(
             " – " if self.synopsis or self.syntags else "",
             target.escape_entities(sub),
-            target.mouseover_tags(self.syntags),
+            target.mouseover_tags(self.syntags, htag="abbr"),
         )
         return out
 
