@@ -784,10 +784,10 @@ class DocsGenParser(object):
         out.extend(target.markdown_block([
             "An index of topics, with related functions, modules, and constants."
         ]))
-        out.extend(
-            target.bullet_list(
-                "{0}: {1}".format(
-                    target.get_link(ltr, anchor=ltr, literalize=False),
+        for ltr in ltrs_found:
+            out.append(
+                "{}: {}".format(
+                    target.bold(ltr),
                     ", ".join(
                         target.get_link(
                             target.escape_entities(topic),
@@ -797,12 +797,9 @@ class DocsGenParser(object):
                         for topic in sorted(index_by_letter[ltr].keys())
                     )
                 )
-                for ltr in ltrs_found
             )
-        )
         for ltr in ltrs_found:
             topics = sorted(index_by_letter[ltr].keys())
-            out.extend(target.header(ltr, lev=target.SUBSECTION))
             for topic in topics:
                 itemlist = index_by_letter[ltr][topic]
                 out.extend(target.header(topic, lev=target.ITEM))
@@ -811,10 +808,7 @@ class DocsGenParser(object):
                 for name, item in sorted_items:
                     out.extend(
                         target.bullet_list_item(
-                            "{}{}".format(
-                                item.get_link(target, label=name, currfile=self.TOPICFILE),
-                                item.get_synopsis(self, target),
-                            )
+                            item.get_index_line(self, target, self.TOPICFILE)
                         )
                     )
                 out.extend(target.bullet_list_end())
@@ -863,10 +857,7 @@ class DocsGenParser(object):
         ]))
         for ltr in ltrs_found:
             items = [
-                "{}{}".format(
-                    item.get_link(target, label=name, currfile=self.INDEXFILE),
-                    item.get_synopsis(self, target),
-                )
+                item.get_index_line(self, target, self.INDEXFILE)
                 for name, item in index_by_letter[ltr]
             ]
             out.extend(target.header(ltr, lev=target.SUBSECTION))

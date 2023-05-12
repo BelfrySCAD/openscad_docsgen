@@ -58,15 +58,21 @@ class Target_Wiki(object):
         lines.append("")
         return lines
 
-    def mouseover_tags(self, tags, file=None, htag="sup"):
+    def mouseover_tags(self, tags, file=None, htag="sup", wrap="{}"):
         if not file:
-            fmt = '&nbsp;\[<{3} title="{1}">{0}</{3}>\]'
+            fmt = ' <{htag} title="{text}">{abbr}</{htag}>'
         elif '#' in file:
-            fmt = '&nbsp;\[<{3} title="{1}">[{0}]({2})</{3}>\]'
+            fmt = ' <{htag} title="{text}">[{abbr}]({link})</{htag}>'
         else:
-            fmt = '&nbsp;\[<{3} title="{1}">[{0}]({2}#{0})</{3}>\]'
+            fmt = ' <{htag} title="{text}">[{abbr}]({link}#{linktag})</{htag}>'
         out = "".join(
-            fmt.format(tag, text, file, htag)
+            fmt.format(
+                htag=htag,
+                abbr=wrap.format(tag),
+                text=text,
+                link=file,
+                linktag=self.header_link(tag)
+            )
             for tag, text in tags.items()
         )
         return out

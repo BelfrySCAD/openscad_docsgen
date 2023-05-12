@@ -155,7 +155,7 @@ class SynopsisBlock(LabelBlock):
 
     def get_file_lines(self, controller, target):
         sub = self.parse_links(self.subtitle, controller, target)
-        sub = target.escape_entities(sub) + target.mouseover_tags(self.parent.syntags, htag="abbr")
+        sub = target.escape_entities(sub) + target.mouseover_tags(self.parent.syntags, htag="sup", wrap="[<abbr>{}</abbr>]")
         out = target.block_header(self.title, sub, escsub=False)
         return out
 
@@ -383,7 +383,7 @@ class FileBlock(GenericBlock):
         for child in self.children:
             if not isinstance(child, SectionBlock):
                 out.extend(child.get_file_lines(controller, target))
-        out.extend(target.header("Table of Contents", lev=target.SECTION))
+        out.extend(target.header("File Contents", lev=target.SECTION))
         out.extend(self.get_toc_lines(controller, target, currfile=self.origin.file))
         for child in self.children:
             if isinstance(child, SectionBlock):
@@ -697,16 +697,33 @@ class ItemBlock(LabelBlock):
         out = "{}{}{}".format(
             " – " if self.synopsis or self.syntags else "",
             target.escape_entities(sub),
-            target.mouseover_tags(self.syntags, htag="abbr"),
+            target.mouseover_tags(self.syntags, htag="sup", wrap="[<abbr>{}</abbr>]"),
+        )
+        return out
+
+    def get_funmod(self):
+        funmod = self.title
+        if funmod == "Function":
+            funmod = "Func"
+        elif funmod == "Module":
+            funmod = "Mod"
+        elif funmod == "Function&Module":
+            funmod = "Func/Mod"
+        elif funmod == "Constant":
+            funmod = "Const"
+        return funmod
+
+    def get_index_line(self, controller, target, file):
+        out = "{} {}{}".format(
+            self.get_link(target, currfile=file),
+            self.get_funmod(),
+            self.get_synopsis(controller, target),
         )
         return out
 
     def get_tocfile_lines(self, controller, target, n=1, currfile=""):
         out = [
-            "{}{}".format(
-                self.get_link(target, currfile=currfile),
-                self.get_synopsis(controller, target),
-            )
+            self.get_index_line(controller, target, currfile)
         ]
         return out
 
