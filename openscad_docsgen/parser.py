@@ -785,18 +785,20 @@ class DocsGenParser(object):
             "An index of topics, with related functions, modules, and constants."
         ]))
         for ltr in ltrs_found:
-            out.append(
-                "{}: {}".format(
-                    target.bold(ltr),
-                    ", ".join(
-                        target.get_link(
-                            target.escape_entities(topic),
-                            anchor=target.header_link(topic),
-                            literalize=False
+            out.extend(
+                target.markdown_block([
+                    "{}: {}".format(
+                        target.bold(ltr),
+                        ", ".join(
+                            target.get_link(
+                                target.escape_entities(topic),
+                                anchor=target.header_link(topic),
+                                literalize=False
+                            )
+                            for topic in sorted(index_by_letter[ltr].keys())
                         )
-                        for topic in sorted(index_by_letter[ltr].keys())
                     )
-                )
+                ])
             )
         for ltr in ltrs_found:
             topics = sorted(index_by_letter[ltr].keys())
