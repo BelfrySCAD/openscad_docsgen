@@ -853,7 +853,7 @@ class DocsGenParser(object):
         ]))
         out.extend(target.markdown_block([
             "  ".join(
-                target.get_link(ltr, anchor=ltr, literalize=False)
+                target.get_link(ltr, anchor=ltr.lower(), literalize=False)
                 for ltr in ltrs_found
             )
         ]))

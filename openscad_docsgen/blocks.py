@@ -851,7 +851,8 @@ class ImageBlock(GenericBlock):
             return
         show_img = (
             any(x in self.meta for x in ("2D", "3D", "Spin", "Anim")) or
-            self.parent.title in ("File", "LibFile", "Module", "Function&Module")
+            self.title.startswith("Figure") or
+            self.parent.title in ("File", "LibFile", "Section", "Subsection", "Module", "Function&Module")
         )
         if show_img:
             outfile = os.path.join(target.docs_dir, self.image_url)
