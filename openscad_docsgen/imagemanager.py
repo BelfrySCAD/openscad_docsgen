@@ -22,6 +22,7 @@ class ImageRequest(object):
     _vpt_re = re.compile(r'VPT *= *\[([^]]+)\]')
     _vpr_re = re.compile(r'VPR *= *\[([^]]+)\]')
     _vpd_re = re.compile(r'VPD *= *([0-9]+)')
+    _vpf_re = re.compile(r'VPF *= *([0-9]+)')
     _color_scheme_re = re.compile(r'ColorScheme *= *([a-zA-Z0-9 ]+)')
 
     def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False):
@@ -66,9 +67,10 @@ class ImageRequest(object):
         self.imgsize = [scale*x for x in self.imgsize]
 
         has_vp_splat = False
+        vpr_line = ""
         match = self._vpr_re.search(image_meta)
         if match:
-            self.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
+            vpr_line = "$vpr = [{}];".format(match.group(1))
             has_vp_splat = True
         match = self._vpt_re.search(image_meta)
         if match:
@@ -78,16 +80,20 @@ class ImageRequest(object):
         if match:
             self.script_lines.insert(0, "$vpd = {};".format(match.group(1)))
             has_vp_splat = True
+        match = self._vpf_re.search(image_meta)
+        if match:
+            self.script_lines.insert(0, "$vpf = {};".format(match.group(1)))
+            has_vp_splat = True
 
         if "FlatSpin" in image_meta:
-            self.script_lines.insert(0, "$vpr = [55, 0, 360*$t];")
+            vpr_line = "$vpr = [55, 0, 360*$t];"
             has_vp_splat = True
         elif "Spin" in image_meta:
             match = self._vpr_re.search(image_meta)
             if match:
-                self.script_lines.insert(0, "$vpr = [{}];".format(match.group(1)))
+                vpr_line = "$vpr = [{}];".format(match.group(1))
             else:
-                self.script_lines.insert(0, "$vpr = [90-45*cos(360*$t), 0, 360*$t];")
+                vpr_line = "$vpr = [90-45*cos(360*$t), 0, 360*$t];"
             has_vp_splat = True
         elif "3D" in image_meta:
             self.camera = [0,0,0,55,0,25,444]
@@ -95,6 +101,9 @@ class ImageRequest(object):
             self.camera = [0,0,0,0,0,0,444]
         if has_vp_splat:
             self.camera = None
+
+        if vpr_line:
+            self.script_lines.insert(0, vpr_line)
 
         match = self._fps_re.search(image_meta)
         if match:
