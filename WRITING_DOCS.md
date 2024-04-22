@@ -755,7 +755,6 @@ metadata directives:
 - `Spin`: Animate camera orbit around the `[0,1,1]` axis to display all sides of an object.
 - `FlatSpin`: Animate camera orbit around the Z axis, above the XY plane.
 - `Anim`: Make an animation where `$t` varies from `0.0` to almost `1.0`.
-- `FPS`: Sets the number of frames per second for spins and animation.
 - `FrameMS=250`: Sets the number of milliseconds per frame for spins and animation.
 - `FPS=8`: Sets the number of frames per second for spins and animation.
 - `Frames=36`: Number of animation frames to make.
