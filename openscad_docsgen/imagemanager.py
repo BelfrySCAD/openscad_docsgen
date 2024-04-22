@@ -30,7 +30,10 @@ class ImageRequest(object):
         self.src_line = src_line
         self.image_file = image_file
         self.image_meta = image_meta
-        self.script_lines = script_lines
+        self.script_lines = [
+                line[2:] if line.startswith("--") else line
+                for line in script_lines
+            ]
         self.completion_cb = completion_cb
         self.starting_cb = starting_cb
         self.verbose = verbose
@@ -66,44 +69,50 @@ class ImageRequest(object):
             scale = 2.5
         self.imgsize = [scale*x for x in self.imgsize]
 
-        has_vp_splat = False
-        vpr_line = ""
+        vpt = [0, 0, 0]
+        vpr = [55, 0, 25]
+        vpd = 444
+        vpf = 22.5
+        dynamic_vp = False
+
         match = self._vpr_re.search(image_meta)
         if match:
-            vpr_line = "$vpr = [{}];".format(match.group(1))
-            has_vp_splat = True
+            vpr, dynamic_vp = self._parse_vp_line(match.group(1), vpr, dynamic_vp)
         match = self._vpt_re.search(image_meta)
         if match:
-            self.script_lines.insert(0, "$vpt = [{}];".format(match.group(1)))
-            has_vp_splat = True
+            vpt, dynamic_vp = self._parse_vp_line(match.group(1), vpt, dynamic_vp)
         match = self._vpd_re.search(image_meta)
         if match:
-            self.script_lines.insert(0, "$vpd = {};".format(match.group(1)))
-            has_vp_splat = True
+            dynamic_vp = True
+            vpd = float(match.group(1))
         match = self._vpf_re.search(image_meta)
         if match:
-            self.script_lines.insert(0, "$vpf = {};".format(match.group(1)))
-            has_vp_splat = True
+            vpf = float(match.group(1))
 
+        if "Anim" in image_meta:
+            dynamic_vp = True
         if "FlatSpin" in image_meta:
-            vpr_line = "$vpr = [55, 0, 360*$t];"
-            has_vp_splat = True
+            dynamic_vp = True
+            vpr = [55, 0, "360*$t"]
         elif "Spin" in image_meta:
-            match = self._vpr_re.search(image_meta)
-            if match:
-                vpr_line = "$vpr = [{}];".format(match.group(1))
-            else:
-                vpr_line = "$vpr = [90-45*cos(360*$t), 0, 360*$t];"
-            has_vp_splat = True
+            dynamic_vp = True
+            if vpr == [55, 0, 25]:
+                vpr = ["90-45*cos(360*$t)", 0, "360*$t"]
         elif "3D" in image_meta:
-            self.camera = [0,0,0,55,0,25,444]
+            vpr = [55, 0, 25]
         elif "2D" in image_meta:
-            self.camera = [0,0,0,0,0,0,444]
-        if has_vp_splat:
-            self.camera = None
+            vpr = [0, 0, 0]
 
-        if vpr_line:
-            self.script_lines.insert(0, vpr_line)
+        if dynamic_vp:
+            self.camera = None
+            self.script_lines[0:0] = [
+                "$vpt = [{}, {}, {}];".format(*vpt),
+                "$vpr = [{}, {}, {}];".format(*vpr),
+                "$vpd = {};".format(vpd),
+                "$vpf = {};".format(vpf),
+            ]
+        else:
+            self.camera = [vpt[0],vpt[1],vpt[2], vpr[0],vpr[1],vpr[2], vpd]
 
         match = self._fps_re.search(image_meta)
         if match:
@@ -137,6 +146,20 @@ class ImageRequest(object):
         self.echos = []
         self.warnings = []
         self.errors = []
+
+    def _parse_vp_line(self, line, old_trio, dynamic):
+        comps = line.split(",")
+        trio = []
+        if len(comps) == 3:
+            for comp in comps:
+                comp = comp.strip()
+                try:
+                    trio.append(float(comp))
+                except ValueError:
+                    trio.append(comp)
+                    dynamic = True
+        trio = trio if trio else old_trio
+        return trio, dynamic
 
     def starting(self):
         if self.starting_cb:

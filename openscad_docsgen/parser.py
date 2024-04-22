@@ -175,6 +175,7 @@ class DocsGenParser(object):
         meta = match.group(3)[1:-1] if match.group(3) else ""
         subtitle = match.group(4).strip() if match.group(4) else ""
         body = []
+        unstripped_body = []
         line_num += 1
 
         try:
@@ -191,6 +192,7 @@ class DocsGenParser(object):
                     first_line = False
                     indent = len(line) - len(line.lstrip())
                 line = line[indent:]
+                unstripped_body.append(line.rstrip('\n'))
                 body.append(line.rstrip())
                 line_num += 1
 
@@ -275,6 +277,30 @@ class DocsGenParser(object):
                             self.opts.gen_sidebar = True
                         else:
                             raise DocsGenException(title, 'Unknown type "{}", while declaring block:'.format(orig_part))
+            elif title == "SidebarHeader":
+                if origin.file != self.RCFILE:
+                    raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
+                body = unstripped_body
+                if subtitle:
+                    body.insert(0,subtitle)
+                body = [line[1:] if line.startswith(".") else line for line in body]
+                self.opts.sidebar_header = body
+            elif title == "SidebarMiddle":
+                if origin.file != self.RCFILE:
+                    raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
+                body = unstripped_body
+                if subtitle:
+                    body.insert(0,subtitle)
+                body = [line[1:] if line.startswith(".") else line for line in body]
+                self.opts.sidebar_middle = body
+            elif title == "SidebarFooter":
+                if origin.file != self.RCFILE:
+                    raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
+                body = unstripped_body
+                if subtitle:
+                    body.insert(0,subtitle)
+                body = [line[1:] if line.startswith(".") else line for line in body]
+                self.opts.sidebar_footer = body
             elif title == "DefineSynTags":
                 if origin.file != self.RCFILE:
                     raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
@@ -289,7 +315,7 @@ class DocsGenParser(object):
                 pass  # Ignore vim and emacs modelines
             elif title in ["File", "LibFile"]:
                 if self.curr_file_block:
-                    raise DocsGenException(title, "File/Libfile block already specified, while declaring block:")
+                    raise DocsGenException(title, "File or Libfile must be the first block specified, and must be specified at most once. Encountered while declaring block:")
                 self.curr_file_block = FileBlock(title, subtitle, body, origin)
                 self.curr_section = None
                 self.curr_subsection = None
@@ -910,11 +936,18 @@ class DocsGenParser(object):
         footmarks = []
         footnotes = {}
         out = []
-        out.extend(target.line_with_break(target.get_link("Table of Contents", file="TOC", literalize=False)))
-        out.extend(target.line_with_break(target.get_link("Function Index", file="AlphaIndex", literalize=False)))
-        out.extend(target.line_with_break(target.get_link("Topics Index", file="Topics", literalize=False)))
-        out.extend(target.line_with_break(target.get_link("Cheat Sheet", file="CheatSheet", literalize=False)))
-        out.extend(target.line_with_break(target.get_link("Tutorials", file="Tutorials", literalize=False)))
+        if self.opts.sidebar_header:
+            out.extend(self.opts.sidebar_header)
+        if self.opts.gen_toc:
+            out.extend(target.line_with_break(target.get_link("Table of Contents", file="TOC", literalize=False)))
+        if self.opts.gen_index:
+            out.extend(target.line_with_break(target.get_link("Function Index", file="AlphaIndex", literalize=False)))
+        if self.opts.gen_topics:
+            out.extend(target.line_with_break(target.get_link("Topics Index", file="Topics", literalize=False)))
+        if self.opts.gen_cheat:
+            out.extend(target.line_with_break(target.get_link("Cheat Sheet", file="CheatSheet", literalize=False)))
+        if self.opts.sidebar_middle:
+            out.extend(self.opts.sidebar_middle)
         out.extend(target.paragraph())
         out.extend(target.header("List of Files:", lev=target.SUBSECTION))
         for group in groups:
@@ -944,6 +977,8 @@ class DocsGenParser(object):
             out.extend(target.header("Footnotes:", lev=target.SUBSECTION))
             for mark in footmarks:
                 out.append("{} = {}  ".format(mark, note))
+        if self.opts.sidebar_footer:
+            out.extend(self.opts.sidebar_footer)
 
         out = target.postprocess(out)
         outfile = os.path.join(target.docs_dir, self.SIDEBARFILE)

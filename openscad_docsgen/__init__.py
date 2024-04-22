@@ -34,6 +34,9 @@ class Options(object):
         self.report = args.report
         self.dump_tree = args.dump_tree
         self.png_animation = args.png_animation
+        self.sidebar_header = []
+        self.sidebar_middle = []
+        self.sidebar_footer = []
         self.update_target()
 
     def set_target(self, targ):

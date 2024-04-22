@@ -664,15 +664,16 @@ metadata directives:
 - `Hide`: Generate, but don't show script or image.  This can be used to generate images to be manually displayed in markdown text blocks.
 - `2D`: Orient camera in a top-down view for showing 2D objects.
 - `3D`: Orient camera in an oblique view for showing 3D objects.
-- `VPD=440`: Force viewpoint distance `$vpd` to 440.
 - `VPT=[10,20,30]` Force the viewpoint translation `$vpt` to `[10,20,30]`.
 - `VPR=[55,0,600]` Force the viewpoint rotation `$vpr` to `[55,0,60]`.
+- `VPD=440`: Force viewpoint distance `$vpd` to 440.
+- `VPF=22.5`: Force field of view angle `$vpf` to 22.5.
 - `Spin`: Animate camera orbit around the `[0,1,1]` axis to display all sides of an object.
 - `FlatSpin`: Animate camera orbit around the Z axis, above the XY plane.
 - `Anim`: Make an animation where `$t` varies from `0.0` to almost `1.0`.
-- `Frames=36`: Number of animation frames to make.
 - `FrameMS=250`: Sets the number of milliseconds per frame for spins and animation.
 - `FPS=8`: Sets the number of frames per second for spins and animation.
+- `Frames=36`: Number of animation frames to make.
 - `Small`: Make the image small sized.
 - `Med`: Make the image medium sized.
 - `Big`: Make the image big sized.
@@ -747,13 +748,15 @@ metadata directives:
 - `Hide`: Generate, but don't show script or image.  This can be used to generate images to be manually displayed in markdown text blocks.
 - `2D`: Orient camera in a top-down view for showing 2D objects.
 - `3D`: Orient camera in an oblique view for showing 3D objects. Often used to force an Example sub-block to generate an image in Function and Constant blocks.
-- `VPD=440`: Force viewpoint distance `$vpd` to 440.
 - `VPT=[10,20,30]` Force the viewpoint translation `$vpt` to `[10,20,30]`.
 - `VPR=[55,0,600]` Force the viewpoint rotation `$vpr` to `[55,0,60]`.
+- `VPD=440`: Force viewpoint distance `$vpd` to 440.
+- `VPF=22.5`: Force field of view angle `$vpf` to 22.5.
 - `Spin`: Animate camera orbit around the `[0,1,1]` axis to display all sides of an object.
 - `FlatSpin`: Animate camera orbit around the Z axis, above the XY plane.
 - `Anim`: Make an animation where `$t` varies from `0.0` to almost `1.0`.
 - `FrameMS=250`: Sets the number of milliseconds per frame for spins and animation.
+- `FPS=8`: Sets the number of frames per second for spins and animation.
 - `Frames=36`: Number of animation frames to make.
 - `Small`: Make the image small sized.
 - `Med`: Make the image medium sized.
@@ -763,6 +766,7 @@ metadata directives:
 - `Render`: Force full rendering from OpenSCAD, instead of the normal preview.
 - `Edges`: Highlight face edges.
 - `NoAxes`: Hides the axes and scales.
+- `NoScales`: Hides the scale numbers along the axes.
 - `ScriptUnder`: Display script text under image, rather than beside it.
 - `ColorScheme`: Generate the image using a specific color scheme
   - Usage: `ColorScheme=<color scheme name>` (e.g. `ColorScheme=BeforeDawn`)
@@ -1031,6 +1035,37 @@ Where the valid docs file types are as follows:
 - `CheatSheet`: Generate a CheatSheet summary of function/module Usages. (CheatSheet.md)
 - `Cheat`: The same as `CheatSheet`.
 - `Sidebar`: Generate a Wiki sidebar index of files. (\_Sidebar.md)
+
+---
+
+To specify markdown text to put at the top of the _Sidebar.md file, you can use the SidebarHeader block.  Any text given in the body will be inserted at the top of the generated sidebar.  Lines with just a period (`.`) will be inserted as blank lines.
+
+    SidebarHeader:
+      ## Header
+      .
+      This is *markdown* text that will be put at the top of the _Sidebar.md file.
+      You can include [Links](https://google.com) or even images.
+
+---
+
+To specify markdown text to put between the index links and the file links of the _Sidebar.md file, you can use the SidebarMiddle block.  Any text given in the body will be inserted verbatim.  Lines with just a period (`.`) will be inserted as blank lines.
+
+    SidebarMiddle:
+      ### Middle
+      .
+      This is *markdown* text that will be put between the index links and the file
+      links of the _Sidebar.md file.  You can include [Links](https://google.com) or
+      even images.
+
+---
+
+To specify markdown text to put at the bottom of the _Sidebar.md file, you can use the SidebarFooter block.  Any text given in the body will be inserted verbatim at the bottom of the generated sidebar.  Lines with just a period (`.`) will be inserted as blank lines.
+
+    SidebarFooter:
+      ### Footer
+      .
+      This is *markdown* text that will be put at the bottom of the _Sidebar.md file.
+      You can include [Links](https://google.com) or even images.
 
 ---
 

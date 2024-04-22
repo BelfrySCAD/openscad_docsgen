@@ -15,7 +15,7 @@ Installing openscad-docsgen
 
 The easiest way to install this is to use pip::
 
-    % pip3 install openscad-docsgen
+    % pip3 install openscad_docsgen
     
 To install directly from these sources, you can instead do::
 
@@ -62,8 +62,8 @@ You can output for a more generic Wiki with ``-p wiki``::
     % openscad-docsgen -ticmI -p wiki *.scad
 
 
-Configuration File
-------------------
+Docsgen Configuration File
+--------------------------
 You can also make more persistent configurations by putting a `.openscad_docsgen_rc` file in the
 directory you will be running openscad-docsgen from.  It can look something like this::
 
@@ -71,6 +71,11 @@ directory you will be running openscad-docsgen from.  It can look something like
     TargetProfile: githubwiki
     ProjectName: The Foobar Project
     GeneratedDocs: Files, ToC, Index, Topics, CheatSheet
+    SidebarHeader:
+      ## Indices
+      .
+    SidebarMiddle:
+      [Tutorials](Tutorials)  
     IgnoreFiles:
       foo.scad
       std.scad
@@ -86,6 +91,87 @@ directory you will be running openscad-docsgen from.  It can look something like
 
 For an explanation of the syntax and the specific headers, see:
 `https://github.com/revarbat/openscad_docsgen/blob/main/WRITING_DOCS.md`
+
+Using openscad-mdimggen
+-----------------------
+If you have MarkDown based files that you would like to generate images for, you can use the
+`openscad_mdimggen` command.  It can take the following arguments::
+
+    -h, --help            Show help message and exit
+    -D DOCS_DIR, --docs-dir DOCS_DIR
+                          The directory to put generated documentation in.
+    -P FILE_PREFIX, --file-prefix FILE_PREFIX
+                          The prefix to put in front of each output markdown file.
+    -T, --test-only       If given, don't generate images, but do try executing the scripts.
+    -I IMAGE_ROOT, --image_root IMAGE_ROOT
+                          The directory to put generated images in.
+    -f, --force           If given, force regeneration of images.
+    -a, --png-animation   If given, animations are created using animated PNGs instead of GIFs.
+
+What `openscad-mdimggen` will do is read the input MarkDown file and look for fenced scripts of
+OpenSCAD code, that starts with a line of the form::
+
+    ```openscad-METADATA
+
+It will copy all non-script lines to the output markdown file, and run OpenSCAD for each of the
+found fenced scripts, inserting the generated image into the output MarkDown file after the script block.
+The METADATA for each script will define the viewpoint and other info for the given generated image.
+This METADATA takes the form of a set of semi-colon separated options that can be any of the following:
+
+- ``NORENDER``: Don't generate an image for this example, but show the example text.
+- ``ImgOnly``: Generate and show the image, but hide the text of the script.
+- ``Hide``: Generate, but don't show script or image.  This can be used to generate images to be manually displayed in markdown text blocks.
+- ``2D``: Orient camera in a top-down view for showing 2D objects.
+- ``3D``: Orient camera in an oblique view for showing 3D objects.
+- ``VPT=[10,20,30]`` Force the viewpoint translation `$vpt` to `[10,20,30]`.
+- ``VPR=[55,0,600]`` Force the viewpoint rotation `$vpr` to `[55,0,60]`.
+- ``VPD=440``: Force viewpoint distance `$vpd` to 440.
+- ``VPF=22.5``: Force field of view angle `$vpf` to 22.5.
+- ``Spin``: Animate camera orbit around the `[0,1,1]` axis to display all sides of an object.
+- ``FlatSpin``: Animate camera orbit around the Z axis, above the XY plane.
+- ``Anim``: Make an animation where `$t` varies from `0.0` to almost `1.0`.
+- ``FrameMS=250``: Sets the number of milliseconds per frame for spins and animation.
+- ``FPS=8``: Sets the number of frames per second for spins and animation.
+- ``Frames=36``: Number of animation frames to make.
+- ``Small``: Make the image small sized.
+- ``Med``: Make the image medium sized.
+- ``Big``: Make the image big sized.
+- ``Huge``: Make the image huge sized.
+- ``Size=880x640``: Make the image 880 by 640 pixels in size.
+- ``Render``: Force full rendering from OpenSCAD, instead of the normal preview.
+- ``Edges``: Highlight face edges.
+- ``NoAxes``: Hides the axes and scales.
+- ``NoScales``: Hides the scale numbers along the axes.
+- ``ColorScheme``: Generate the image using a specific color scheme
+  - Usage: ``ColorScheme=<color scheme name>`` (e.g. ``ColorScheme=BeforeDawn``)
+  - Default color scheme: ``Cornfield``
+  - Predefined color schemes: ``Cornfield``, ``Metallic``, ``Sunset``, ``Starnight``, ``BeforeDawn``, ``Nature``, ``DeepOcean``, ``Solarized``, ``Tomorrow``, ``Tomorrow Night``, ``Monotone``
+  - Color schemes defined as a [Read-only Resource](https://github.com/openscad/openscad/wiki/Path-locations#read-only-resources) or [User Resource](https://github.com/openscad/openscad/wiki/Path-locations#user-resources) are also supported.
+
+For example::
+
+    ```openscad-FlatSpin;VPD=500
+    prismoid([60,40], [40,20], h=40, offset=[10,10]);
+    ```
+
+Will generate an animated flat spin of the prismoid at a viewing distance of 500.  While::
+
+    ```openscad-3D;Big
+    prismoid([60,40], [40,20], h=40, offset=[10,10]);
+    ```
+
+Will generate a still image of the same prismoid, but at a bigger image size.
+
+MDImgGen Configuration File
+---------------------------
+You can store defaults for ``openscad_mdimggen`` in the ``.openscad_mdimggen_rc`` file like this::
+
+    docs_dir: "BOSL2.wiki"
+    image_root: "images/tutorials"
+    file_prefix: "Tutorial-"
+    source_files: "tutorials/*.md"
+    png_animations: true
+    
 
 External Calling
 ----------------

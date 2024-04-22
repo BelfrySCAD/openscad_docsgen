@@ -101,7 +101,9 @@ class MarkdownImageGen(object):
                             )
                             if show_script:
                                 out.append("```openscad")
-                                out.extend(script)
+                                for line in script:
+                                    if not line.startswith("--"):
+                                        out.append(line)
                                 out.append("```")
                             out.append("![Figure {}]({})".format(imgnum, img_rel_url))
                             show_script = True
