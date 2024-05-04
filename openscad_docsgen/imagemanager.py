@@ -18,12 +18,12 @@ class ImageRequest(object):
     _size_re = re.compile(r'Size *= *([0-9]+) *x *([0-9]+)')
     _frames_re = re.compile(r'Frames *= *([0-9]+)')
     _framems_re = re.compile(r'FrameMS *= *([0-9]+)')
-    _fps_re = re.compile(r'FPS *= *([0-9]+)')
+    _fps_re = re.compile(r'FPS *= *([0-9.]+)')
     _vpt_re = re.compile(r'VPT *= *\[([^]]+)\]')
     _vpr_re = re.compile(r'VPR *= *\[([^]]+)\]')
-    _vpd_re = re.compile(r'VPD *= *([0-9]+)')
-    _vpf_re = re.compile(r'VPF *= *([0-9]+)')
-    _color_scheme_re = re.compile(r'ColorScheme *= *([a-zA-Z0-9 ]+)')
+    _vpd_re = re.compile(r'VPD *= *([a-zA-Z0-9_()+*/$.-]+)')
+    _vpf_re = re.compile(r'VPF *= *([a-zA-Z0-9_()+*/$.-]+)')
+    _color_scheme_re = re.compile(r'ColorScheme *= *([a-zA-Z0-9_ ]+)')
 
     def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False):
         self.src_file = src_file
@@ -75,33 +75,41 @@ class ImageRequest(object):
         vpf = 22.5
         dynamic_vp = False
 
-        match = self._vpr_re.search(image_meta)
-        if match:
-            vpr, dynamic_vp = self._parse_vp_line(match.group(1), vpr, dynamic_vp)
-        match = self._vpt_re.search(image_meta)
-        if match:
-            vpt, dynamic_vp = self._parse_vp_line(match.group(1), vpt, dynamic_vp)
-        match = self._vpd_re.search(image_meta)
-        if match:
-            dynamic_vp = True
-            vpd = float(match.group(1))
-        match = self._vpf_re.search(image_meta)
-        if match:
-            vpf = float(match.group(1))
-
-        if "Anim" in image_meta:
-            dynamic_vp = True
-        if "FlatSpin" in image_meta:
-            dynamic_vp = True
-            vpr = [55, 0, "360*$t"]
-        elif "Spin" in image_meta:
-            dynamic_vp = True
-            if vpr == [55, 0, 25]:
-                vpr = ["90-45*cos(360*$t)", 0, "360*$t"]
-        elif "3D" in image_meta:
+        if "3D" in image_meta:
             vpr = [55, 0, 25]
         elif "2D" in image_meta:
             vpr = [0, 0, 0]
+        if "FlatSpin" in image_meta:
+            vpr = [55, 0, "360*$t"]
+            dynamic_vp = True
+        elif "Spin" in image_meta:
+            vpr = ["90-45*cos(360*$t)", 0, "360*$t"]
+            dynamic_vp = True
+        elif "XSpin" in image_meta:
+            vpr = ["360*$t", 0, 25]
+            dynamic_vp = True
+        elif "YSpin" in image_meta:
+            vpr = [55, "360*$t", 25]
+            dynamic_vp = True
+        if "Anim" in image_meta:
+            dynamic_vp = True
+
+        match = self._vpr_re.search(image_meta)
+        if match:
+            vpr, dyn_vp = self._parse_vp_line(match.group(1), vpr, dynamic_vp)
+            dynamic_vp = dynamic_vp or dyn_vp
+        match = self._vpt_re.search(image_meta)
+        if match:
+            vpt, dyn_vp = self._parse_vp_line(match.group(1), vpt, dynamic_vp)
+            dynamic_vp = dynamic_vp or dyn_vp
+        match = self._vpd_re.search(image_meta)
+        if match:
+            vpd = float(match.group(1))
+            dynamic_vp = True
+        match = self._vpf_re.search(image_meta)
+        if match:
+            vpf = float(match.group(1))
+            dynamic_vp = True
 
         if dynamic_vp:
             self.camera = None

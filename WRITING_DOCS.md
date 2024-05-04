@@ -670,6 +670,8 @@ metadata directives:
 - `VPF=22.5`: Force field of view angle `$vpf` to 22.5.
 - `Spin`: Animate camera orbit around the `[0,1,1]` axis to display all sides of an object.
 - `FlatSpin`: Animate camera orbit around the Z axis, above the XY plane.
+- `XSpin`: Animate camera orbit around the X axis, to the right of the YZ plane.
+- `YSpin`: Animate camera orbit around the Y axis, to the front of the XZ plane.
 - `Anim`: Make an animation where `$t` varies from `0.0` to almost `1.0`.
 - `FrameMS=250`: Sets the number of milliseconds per frame for spins and animation.
 - `FPS=8`: Sets the number of frames per second for spins and animation.
@@ -754,6 +756,8 @@ metadata directives:
 - `VPF=22.5`: Force field of view angle `$vpf` to 22.5.
 - `Spin`: Animate camera orbit around the `[0,1,1]` axis to display all sides of an object.
 - `FlatSpin`: Animate camera orbit around the Z axis, above the XY plane.
+- `XSpin`: Animate camera orbit around the X axis, to the right of the YZ plane.
+- `YSpin`: Animate camera orbit around the Y axis, to the front of the XZ plane.
 - `Anim`: Make an animation where `$t` varies from `0.0` to almost `1.0`.
 - `FrameMS=250`: Sets the number of milliseconds per frame for spins and animation.
 - `FPS=8`: Sets the number of frames per second for spins and animation.
