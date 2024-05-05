@@ -37,6 +37,11 @@ class GenericBlock(object):
             self.subtitle
         )
 
+    def get_figure_num(self):
+        if self.parent:
+            return self.parent.get_figure_num()
+        return ""
+
     def sort_children(self, front_blocks=(), back_blocks=()):
         children = []
         for blocks in front_blocks:
@@ -390,6 +395,9 @@ class FileBlock(GenericBlock):
                 out.extend(child.get_file_lines(controller, target))
         return out
 
+    def get_figure_num(self):
+        return "{}".format(self.figure_num)
+
 
 class IncludesBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
@@ -410,6 +418,8 @@ class IncludesBlock(GenericBlock):
 class SectionBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
+        if parent:
+            self.parent.figure_num += 1
 
     def get_link(self, target, currfile=None, label=""):
         file = self.origin.file
@@ -530,10 +540,16 @@ class SectionBlock(GenericBlock):
             out.extend(child.get_file_lines(controller, target))
         return out
 
+    def get_figure_num(self):
+        hdr = (self.parent.get_figure_num() + ".") if self.parent else ""
+        return "{}{}".format(hdr, self.figure_num)
+
 
 class SubsectionBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
+        if parent:
+            self.parent.figure_num += 1
 
     def get_link(self, target, currfile=None, label=""):
         file = self.origin.file
@@ -623,6 +639,10 @@ class SubsectionBlock(GenericBlock):
             out.extend(child.get_file_lines(controller, target))
         return out
 
+    def get_figure_num(self):
+        hdr = (self.parent.get_figure_num() + ".") if self.parent else ""
+        return "{}{}".format(hdr, self.figure_num)
+
 
 class ItemBlock(LabelBlock):
     _paren_pat = re.compile(r'\([^\)]+\)')
@@ -638,6 +658,8 @@ class ItemBlock(LabelBlock):
         self.see_also = []
         self.synopsis = ""
         self.syntags = {}
+        if parent:
+            self.parent.figure_num += 1
 
     def __str__(self):
         return "{}: {}".format(
@@ -792,6 +814,10 @@ class ItemBlock(LabelBlock):
         out.extend(target.horizontal_rule())
         return out
 
+    def get_figure_num(self):
+        hdr = (self.parent.get_figure_num() + ".") if self.parent else ""
+        return "{}{}".format(hdr, self.figure_num)
+
 
 class ImageBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None, meta="", use_apngs=False):
@@ -801,7 +827,6 @@ class ImageBlock(GenericBlock):
             fileblock = fileblock.parent
 
         self.meta = meta
-        self.image_num = 0
         self.image_url = None
         self.image_url_rel = None
         self.image_req = None
@@ -825,20 +850,16 @@ class ImageBlock(GenericBlock):
             file_ext = "png"
         if self.title == "Figure":
             parent.figure_num += 1
-            self.image_num = parent.figure_num
-            if parent.title in ["File", "LibFile"]:
-                proposed_name = "figure{}.{}".format(self.image_num, file_ext)
-            elif parent.title in ["Section", "Subsection"]:
-                proposed_name = "{}-{}_fig{}.{}".format(parent.title.lower(), san_name, self.image_num, file_ext)
-            else:
-                proposed_name = "{}_fig{}.{}".format(san_name, self.image_num, file_ext)
-            self.title = "{} {}".format(self.title, self.image_num)
+            fignum = self.get_figure_num()
+            figsan = fignum.replace(".","_")
+            proposed_name = "figure_{}.{}".format(figsan, file_ext)
+            self.title = "{} {}".format(self.title, fignum)
         else:
             parent.example_num += 1
-            self.image_num = parent.example_num
-            img_suffix = "_{}".format(self.image_num) if self.image_num > 1 else ""
+            image_num = parent.example_num
+            img_suffix = "_{}".format(image_num) if image_num > 1 else ""
             proposed_name = "{}{}.{}".format(san_name, img_suffix, file_ext)
-            self.title = "{} {}".format(self.title, self.image_num)
+            self.title = "{} {}".format(self.title, image_num)
 
         file_dir, file_name = os.path.split(fileblock.origin.file.strip())
         file_base = os.path.splitext(file_name)[0]
