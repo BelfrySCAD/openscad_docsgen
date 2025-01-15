@@ -464,15 +464,13 @@ class SectionBlock(GenericBlock):
             for child in self.get_children_by_title("Subsection"):
                 out.extend(child.get_tocfile_lines(controller, target, currfile=currfile))
             out.extend(
-                target.indent_lines(
-                    target.bullet_list(
-                        flatten([
-                            child.get_tocfile_lines(controller, target, currfile=currfile)
-                            for child in self.get_children_by_title(
-                                ["Constant","Function","Module","Function&Module"]
-                            )
-                        ])
-                    )
+                target.bullet_list(
+                    flatten([
+                        child.get_tocfile_lines(controller, target, currfile=currfile)
+                        for child in self.get_children_by_title(
+                            ["Constant","Function","Module","Function&Module"]
+                        )
+                    ])
                 )
             )
         return out

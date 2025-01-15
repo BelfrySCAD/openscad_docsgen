@@ -15,6 +15,26 @@ class Target_Wiki(object):
     def get_suffix(self):
         return ".md"
 
+    @property
+    def TOCFILE(self):
+        return "TOC" + self.get_suffix()
+
+    @property
+    def TOPICFILE(self):
+        return "Topics" + self.get_suffix()
+
+    @property
+    def INDEXFILE(self):
+        return "AlphaIndex" + self.get_suffix()
+
+    @property
+    def CHEATFILE(self):
+        return "CheatSheet" + self.get_suffix()
+
+    @property
+    def SIDEBARFILE(self):
+        return "_Sidebar" + self.get_suffix()
+
     def postprocess(self, lines):
         return lines
 
