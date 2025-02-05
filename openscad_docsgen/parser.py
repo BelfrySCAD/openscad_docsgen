@@ -19,8 +19,6 @@ class OriginInfo:
 
     @property
     def md_file(self):
-        if self._md_in_links:
-            return self.file+".md"
         return self.file
 
 
@@ -45,13 +43,6 @@ class DocsGenParser(object):
         self.priority_groups = []
         self.items_by_name = {}
         self.syntags_data = {}
-
-        sfx = self.target.get_suffix()
-        self.TOCFILE = "TOC" + sfx
-        self.TOPICFILE = "Topics" + sfx
-        self.INDEXFILE = "AlphaIndex" + sfx
-        self.CHEATFILE = "CheatSheet" + sfx
-        self.SIDEBARFILE = "_Sidebar" + sfx
 
         self._reset_header_defs()
 
@@ -746,9 +737,10 @@ class DocsGenParser(object):
                 if fblock.group != group:
                     continue
                 file = fblock.subtitle
+                fullfilepath = fblock.origin.md_file
                 anch = target.header_link("{}. {}".format(fnum+1, file))
                 link = target.get_link(file, anchor=anch, literalize=False)
-                filelink = target.get_link("docs", file=file, literalize=False)
+                filelink = target.get_link("docs", file=fullfilepath, literalize=False)
                 tags = {tag: text for tag, text, origin in fblock.footnotes}
                 marks = target.mouseover_tags(tags, "#file-footnotes")
                 out.extend(target.bullet_list_item("{} ({}){}".format(link, filelink, marks)))
@@ -773,10 +765,10 @@ class DocsGenParser(object):
             out.append("")
 
         for fnum, fblock in enumerate(prifiles):
-            out.extend(fblock.get_tocfile_lines(self, self.opts.target, n=fnum+1, currfile=self.TOCFILE))
+            out.extend(fblock.get_tocfile_lines(self, self.opts.target, n=fnum+1, currfile=self.target.TOCFILE))
 
         out = target.postprocess(out)
-        outfile = os.path.join(target.docs_dir, self.TOCFILE)
+        outfile = os.path.join(target.docs_dir, self.target.TOCFILE)
         if not self.quiet:
             print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
@@ -836,13 +828,13 @@ class DocsGenParser(object):
                 for name, item in sorted_items:
                     out.extend(
                         target.bullet_list_item(
-                            item.get_index_line(self, target, self.TOPICFILE)
+                            item.get_index_line(self, target, self.target.TOPICFILE)
                         )
                     )
                 out.extend(target.bullet_list_end())
 
         out = target.postprocess(out)
-        outfile = os.path.join(target.docs_dir, self.TOPICFILE)
+        outfile = os.path.join(target.docs_dir, self.target.TOPICFILE)
         if not self.quiet:
             print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
@@ -885,14 +877,14 @@ class DocsGenParser(object):
         ]))
         for ltr in ltrs_found:
             items = [
-                item.get_index_line(self, target, self.INDEXFILE)
+                item.get_index_line(self, target, self.target.INDEXFILE)
                 for name, item in index_by_letter[ltr]
             ]
             out.extend(target.header(ltr, lev=target.SUBSECTION))
             out.extend(target.bullet_list(items))
 
         out = target.postprocess(out)
-        outfile = os.path.join(target.docs_dir, self.INDEXFILE)
+        outfile = os.path.join(target.docs_dir, self.target.INDEXFILE)
         if not self.quiet:
             print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
@@ -913,7 +905,7 @@ class DocsGenParser(object):
             out.extend(file_block.get_cheatsheet_lines(self, self.opts.target))
 
         out = target.postprocess(out)
-        outfile = os.path.join(target.docs_dir, self.CHEATFILE)
+        outfile = os.path.join(target.docs_dir, self.target.CHEATFILE)
         if not self.quiet:
             print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
@@ -981,7 +973,7 @@ class DocsGenParser(object):
             out.extend(self.opts.sidebar_footer)
 
         out = target.postprocess(out)
-        outfile = os.path.join(target.docs_dir, self.SIDEBARFILE)
+        outfile = os.path.join(target.docs_dir, self.target.SIDEBARFILE)
         if not self.quiet:
             print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:

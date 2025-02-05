@@ -100,7 +100,7 @@ def processFiles(opts):
 
 
 def main():
-    target_profiles = ["githubwiki", "stdwiki"]
+    target_profiles = ["githubwiki", "stdwiki", "mkdocs"]
 
     parser = argparse.ArgumentParser(prog='openscad-docsgen')
     parser.add_argument('-D', '--docs-dir', default="docs",
