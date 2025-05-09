@@ -44,12 +44,15 @@ class DocsGenParser(object):
         self.priority_files = []
         self.priority_groups = []
         self.items_by_name = {}
+        self.definitions = {}
+        self.defn_aliases = {}
         self.syntags_data = {}
 
         sfx = self.target.get_suffix()
         self.TOCFILE = "TOC" + sfx
         self.TOPICFILE = "Topics" + sfx
         self.INDEXFILE = "AlphaIndex" + sfx
+        self.GLOSSARYFILE = "Glossary" + sfx
         self.CHEATFILE = "CheatSheet" + sfx
         self.SIDEBARFILE = "_Sidebar" + sfx
 
@@ -255,8 +258,13 @@ class DocsGenParser(object):
                 if body:
                     raise DocsGenException(title, "Body not supported, while declaring block:")
                 if not (
-                    self.opts.gen_files or self.opts.gen_toc or self.opts.gen_index or
-                    self.opts.gen_topics or self.opts.gen_cheat or self.opts.gen_sidebar
+                    self.opts.gen_files or
+                    self.opts.gen_toc or
+                    self.opts.gen_index or
+                    self.opts.gen_topics or
+                    self.opts.gen_cheat or
+                    self.opts.gen_sidebar or
+                    self.opts.gen_glossary
                 ):
                     # Only use default GeneratedDocs if the command-line doesn't specify any docs
                     # types to generate.
@@ -273,6 +281,8 @@ class DocsGenParser(object):
                             self.opts.gen_topics = True
                         elif part in ["CHEAT", "CHEATSHEET"]:
                             self.opts.gen_cheat = True
+                        elif part == "GLOSSARY":
+                            self.opts.gen_glossary = True
                         elif part == "SIDEBAR":
                             self.opts.gen_sidebar = True
                         else:
@@ -361,6 +371,18 @@ class DocsGenParser(object):
             elif title == "CommonCode":
                 self._check_filenode(title, origin)
                 self.curr_file_block.common_code.extend(body)
+            elif title == "Definitions":
+                print("DEF")
+                self._check_filenode(title, origin)
+                block = DefinitionsBlock(title, subtitle, body, origin, parent=parent)
+                for main_term, info in block.definitions.items():
+                    terms, defn = info
+                    for term in terms:
+                        if term in self.definitions or term in self.defn_aliases:
+                            raise DocsGenException(title, 'Term "{}" re-defined, while declaring block:'.format(term))
+                    self.definitions[main_term] = (terms, defn)
+                    for term in terms[1:]:
+                        self.defn_aliases[term] = main_term
             elif title == "Figure":
                 self._check_filenode(title, origin)
                 FigureBlock(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
@@ -672,6 +694,11 @@ class DocsGenParser(object):
                 col = 1
             self.parse_file(filename, commentless=commentless)
             col = col + flen
+        for key, info in self.definitions.items():
+            keys, defn = info
+            blk = self.file_blocks[0]
+            defn = blk.parse_links(defn, self, self.target, html=True)
+            self.definitions[key] = (keys, defn)
         if not self.quiet:
             print("")
 
@@ -777,6 +804,50 @@ class DocsGenParser(object):
 
         out = target.postprocess(out)
         outfile = os.path.join(target.docs_dir, self.TOCFILE)
+        if not self.quiet:
+            print("Writing {}...".format(outfile))
+        with open(outfile, "w") as f:
+            for line in out:
+                f.write(line + "\n")
+
+    def write_glossary_file(self):
+        """Generates the Glossary file from the parsed documentation."""
+        target = self.opts.target
+        os.makedirs(target.docs_dir, mode=0o744, exist_ok=True)
+        defs = {key: info[1] for key, info in self.definitions.items()}
+        sorted_words = sorted(list(defs.keys()), key=lambda v: v.upper())
+        ltrs_found = {}
+        for word in sorted_words:
+            ltr = word[0].upper()
+            ltrs_found[ltr] = 1
+        ltrs_found = sorted(list(ltrs_found.keys()))
+
+        out = []
+        out = target.header("Glossary")
+        out.extend(target.markdown_block([
+            "Definitions of various Words and terms."
+        ]))
+        out.extend(target.markdown_block([
+            "  ".join(
+                target.get_link(ltr.upper(), anchor=ltr.lower(), literalize=False)
+                for ltr in ltrs_found
+            )
+        ]))
+        out.extend(target.horizontal_rule())
+        old_ltr = ''
+        for word in sorted_words:
+            ltr = word[0].upper()
+            if old_ltr != ltr:
+                if old_ltr:
+                    out.extend(target.definition_list_end())
+                out.extend(target.header(ltr.upper(), lev=3))
+                out.extend(target.definition_list_start())
+                old_ltr = ltr
+            defn = defs[word.lower()]
+            out.extend(target.definition_list_item(word, defn))
+        out.extend(target.definition_list_end())
+        out = target.postprocess(out)
+        outfile = os.path.join(target.docs_dir, self.GLOSSARYFILE)
         if not self.quiet:
             print("Writing {}...".format(outfile))
         with open(outfile, "w") as f:
@@ -944,6 +1015,8 @@ class DocsGenParser(object):
             out.extend(target.line_with_break(target.get_link("Function Index", file="AlphaIndex", literalize=False)))
         if self.opts.gen_topics:
             out.extend(target.line_with_break(target.get_link("Topics Index", file="Topics", literalize=False)))
+        if self.opts.gen_glossary:
+            out.extend(target.line_with_break(target.get_link("Glossary", file="Glossary", literalize=False)))
         if self.opts.gen_cheat:
             out.extend(target.line_with_break(target.get_link("Cheat Sheet", file="CheatSheet", literalize=False)))
         if self.opts.sidebar_middle:

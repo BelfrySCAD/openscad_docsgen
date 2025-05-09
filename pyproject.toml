@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openscad_docsgen"
-version = "2.0.44"
+version = "2.0.45"
 authors = [
   { name="Revar Desmera", email="revarbat@gmail.com" },
 ]
@@ -37,7 +37,7 @@ keywords = ["openscad", "documentation generation", "docs generation", "docsgen"
 dependencies = [
     "pillow>=10.3.0",
     "PyYAML>=6.0",
-    "openscad_runner>=1.1.1"
+    "openscad_runner>=1.1.2"
 ]
 
 [project.scripts]

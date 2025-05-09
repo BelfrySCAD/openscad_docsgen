@@ -28,6 +28,7 @@ class GenericBlock(object):
         self.parent = parent
         self.children = []
         self.figure_num = 0
+        self.definitions = {}
         if parent:
             parent.children.append(self)
 
@@ -82,24 +83,31 @@ class GenericBlock(object):
             d["children"] = [child.get_data() for child in self.children]
         return d
 
-    def get_link(self, target, currfile=None):
+    def get_link(self, target, currfile=None, literalize=False, html=False):
         return self.title
 
-    def parse_links(self, line, controller, target):
+    def parse_links(self, line, controller, target, html=False):
         oline = ""
         while line:
             m = self._link_pat.match(line)
             if m:
                 oline += m.group(1)
-                name = m.group(2)
+                name = m.group(2).lower().strip()
                 line = m.group(3)
-                if name not in controller.items_by_name:
+                literalize = name.endswith("()")
+                if name in controller.items_by_name:
+                    item = controller.items_by_name[name]
+                    oline += item.get_link(target, currfile=self.origin.file, literalize=literalize, html=html)
+                elif name in controller.definitions:
+                    oline += target.get_link(name, anchor=name.lower(), file=controller.GLOSSARYFILE, literalize=literalize, html=html)
+                elif name in controller.defn_aliases:
+                    name = controller.defn_aliases[name]
+                    oline += target.get_link(name, anchor=name.lower(), file=controller.GLOSSARYFILE, literalize=literalize, html=html)
+                else:
+                    print(controller.definitions)
                     msg = "Invalid Link {{{{{0}}}}}".format(name)
                     errorlog.add_entry(self.origin.file, self.origin.line, msg, ErrorLog.FAIL)
                     oline += name
-                else:
-                    item = controller.items_by_name[name]
-                    oline += item.get_link(target, currfile=self.origin.file)
             else:
                 oline += line
                 line = ""
@@ -241,6 +249,36 @@ class TextBlock(GenericBlock):
         super().__init__(title, subtitle, body, origin, parent=parent)
 
 
+class DefinitionsBlock(GenericBlock):
+    def __init__(self, title, subtitle, body, origin, parent=None):
+        super().__init__(title, subtitle, body, origin, parent=parent)
+        terms = []
+        self.definitions = {}
+        for line in body:
+            if '=' not in line:
+                raise DocsGenException(title, "Expected body line in the format TERM = DEFINITION, while declaring block:")
+            termset, defn = line.split('=', 1)
+            termset = [x.strip() for x in termset.lower().split('|')]
+            defn = defn.strip()
+            for term in termset:
+                if term in terms:
+                    raise DocsGenException(title, "Redefined term '{}', while declaring block:".format(term))
+                terms.append(term)
+            term = termset[0]
+            self.definitions[term] = (termset, defn)
+
+    def get_file_lines(self, controller, target):
+        out = target.block_header(self.title, self.subtitle)
+        terms = list(self.definitions.keys())
+        defs = {
+                key: self.parse_links(info[1], controller, target, html=True)
+                for key, info in self.definitions.items()
+            }
+        out.extend(target.definition_list(terms, defs))
+        out.append("")
+        return out
+
+
 class BulletListBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None):
         super().__init__(title, subtitle, body, origin, parent=parent)
@@ -330,7 +368,7 @@ class FileBlock(GenericBlock):
         d["children"] = list(filter(lambda x: x["name"] not in skip_titles, d["children"]))
         return d
 
-    def get_link(self, target, currfile=None, label=""):
+    def get_link(self, target, currfile=None, label="", literalize=False, html=False):
         file = self.origin.file
         if currfile is None or self.origin.file == currfile:
             file = ""
@@ -338,7 +376,8 @@ class FileBlock(GenericBlock):
             label=label if label else str(self),
             anchor="",
             file=file,
-            literalize=False
+            literalize=literalize,
+            html=html
         )
 
     def get_tocfile_lines(self, controller, target, n=1, currfile=""):
@@ -421,7 +460,7 @@ class SectionBlock(GenericBlock):
         if parent:
             self.parent.figure_num += 1
 
-    def get_link(self, target, currfile=None, label=""):
+    def get_link(self, target, currfile=None, label="", literalize=False, html=False):
         file = self.origin.file
         if currfile is None or self.origin.file == currfile:
             file = ""
@@ -429,7 +468,8 @@ class SectionBlock(GenericBlock):
             label=label if label else str(self),
             anchor=target.header_link(str(self)),
             file=file,
-            literalize=False
+            literalize=literalize,
+            html=html
         )
 
     def get_tocfile_lines(self, controller, target, n=1, currfile=""):
@@ -551,7 +591,7 @@ class SubsectionBlock(GenericBlock):
         if parent:
             self.parent.figure_num += 1
 
-    def get_link(self, target, currfile=None, label=""):
+    def get_link(self, target, currfile=None, label="", literalize=False, html=False):
         file = self.origin.file
         if currfile is None or self.origin.file == currfile:
             file = ""
@@ -559,7 +599,8 @@ class SubsectionBlock(GenericBlock):
             label=label if label else str(self),
             anchor=target.header_link(str(self)),
             file=file,
-            literalize=False
+            literalize=literalize,
+            html=html
         )
 
     def get_tocfile_lines(self, controller, target, n=1, currfile=""):
@@ -667,7 +708,7 @@ class ItemBlock(LabelBlock):
             re.sub(r'\([^\)]*\)', r'()', self.subtitle)
         )
 
-    def get_link(self, target, currfile=None, label="", literalize=True):
+    def get_link(self, target, currfile=None, label="", literalize=True, html=False):
         file = self.origin.file
         if currfile is None or self.origin.file == currfile:
             file = ""
@@ -677,7 +718,8 @@ class ItemBlock(LabelBlock):
                 "{}: {}".format(self.title, self.subtitle)
             ),
             file=file,
-            literalize=literalize
+            literalize=literalize,
+            html=html
         )
 
     def get_data(self):

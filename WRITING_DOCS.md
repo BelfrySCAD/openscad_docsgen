@@ -206,7 +206,10 @@ Which outputs Markdown code that renders like:
 > The end of the block is denoted by a line without a comment.
 > or a line that is unindented after the comment.
 
-Sections can also include Figures; images generated from code that is not shown in a code block.
+Sections can also include:
+
+- Figures: images generated from code that is not shown in a code block.
+- Definitions: Glossary term definitions.
 
 
 Subsection Block
@@ -248,7 +251,10 @@ Which outputs Markdown code that renders like:
 > The end of the block is denoted by a line without a comment.
 > or a line that is unindented after the comment.
 
-Subsections can also include Figures; images generated from code that is not shown in a code block.
+Subsections can also include:
+
+- Figures: images generated from code that is not shown in a code block.
+- Definitions: Glossary term definitions.
 
 
 Item Blocks
@@ -426,6 +432,7 @@ These Type blocks can have a number of sub-blocks.  Most sub-blocks are optional
 - `// Continues:`
 - `// Arguments:`
 - `// Example:` or `// Examples:`
+- `// Definitions:`
 
 
 Aliases Block
@@ -795,6 +802,29 @@ script used to generate the example image, without the `--`, of course:
     //   ];
     //   foo(lst, 23, "blah");
 
+
+Definitions Block
+-----------------
+
+A Definitions block is used to define one or more terms that will be included in the Glossary.md file.  The definitions are also shown where they are defined in the docs.  Terms are defined one per line of the body, and have the term and definition separated by an `=` sign.  A term can have aliases, separated by `|` bar characters.  For example:
+
+    // Definitions:
+    //   Path|Paths = A list of 2D point coordinates, defining a polyline.
+    //   Polygon|Polygons = A path where the first and last points are connected.
+    //   Convex Polygon|Convex Polygons = A polygon such that no extended side itersects any other side or vertex.
+
+Which outputs Markdown code that renders like:
+
+> **Definitions:**
+> <dl>
+> <dt>Path</dt>
+> <dd>A list of 2D coordinates, defining a polyline.</dd>
+> <dt>Polygon</dt>
+> <dd>A path where the first and last points are connected.</dd>
+> <dt>Convex Polygon</dt>
+> <dd>A polygon such that no extended side itersects any other side or vertex.</dd>
+> </dl>
+>
 
 Creating Custom Block Headers
 =============================

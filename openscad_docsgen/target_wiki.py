@@ -87,13 +87,15 @@ class Target_Wiki(object):
     def indent_lines(self, lines):
         return [" "*4 + line for line in lines]
 
-    def get_link(self, label, anchor="", file="", literalize=True):
+    def get_link(self, label, anchor="", file="", literalize=True, html=False):
         if literalize:
             label = "`{0}`".format(label)
         else:
             label = self.escape_entities(label)
         if anchor:
             anchor = "#" + anchor
+        if html:
+            return '<a href="{}{}">{}</a>'.format(file, anchor, label)
         return "[{0}]({1}{2})".format(label, file, anchor)
 
     def code_span(self, txt):
@@ -189,6 +191,26 @@ class Target_Wiki(object):
         for num, item in enumerate(items):
             out.extend(self.numbered_list_item(num+1, item))
         out.extend(self.numbered_list_end())
+        return out
+
+    def definition_list_start(self):
+        return ["<dl>"]
+
+    def definition_list_item(self, word, defn):
+        out = ["<dt>{}</dt>".format(word.title())]
+        out += ["<dd>"]
+        out.append(defn)
+        out += ["</dd>"]
+        return out
+
+    def definition_list_end(self):
+        return ["</dl>", ""]
+
+    def definition_list(self, words, defs):
+        out = self.definition_list_start()
+        for word in words:
+            out.extend(self.definition_list_item(word, defs[word.lower()]))
+        out.extend(self.definition_list_end())
         return out
 
     def table(self, headers, rows):

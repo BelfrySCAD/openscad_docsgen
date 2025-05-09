@@ -29,6 +29,7 @@ class Options(object):
         self.gen_toc = args.gen_toc
         self.gen_index = args.gen_index
         self.gen_topics = args.gen_topics
+        self.gen_glossary = args.gen_glossary
         self.gen_cheat = args.gen_cheat
         self.gen_sidebar = args.gen_sidebar
         self.report = args.report
@@ -87,6 +88,8 @@ def processFiles(opts):
         docsgen.write_index_file()
     if opts.gen_topics:
         docsgen.write_topics_file()
+    if opts.gen_glossary:
+        docsgen.write_glossary_file()
     if opts.gen_cheat:
         docsgen.write_cheatsheet_file()
     if opts.gen_sidebar:
@@ -123,6 +126,8 @@ def main():
                         help='If given, generate Topics.md topics index file.')
     parser.add_argument('-t', '--gen-toc', action="store_true",
                         help='If given, generate TOC.md table of contents file.')
+    parser.add_argument('-g', '--gen-glossary', action="store_true",
+                        help='If given, generate Glossary.md file.')
     parser.add_argument('-c', '--gen-cheat', action="store_true",
                         help='If given, generate CheatSheet.md file with all Usage lines.')
     parser.add_argument('-s', '--gen_sidebar', action="store_true",
