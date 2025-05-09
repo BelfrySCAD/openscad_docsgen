@@ -697,7 +697,7 @@ class DocsGenParser(object):
         for key, info in self.definitions.items():
             keys, defn = info
             blk = self.file_blocks[0]
-            defn = blk.parse_links(defn, self, self.target, html=True)
+            defn = blk.parse_links(defn, self, self.target, html=False)
             self.definitions[key] = (keys, defn)
         if not self.quiet:
             print("")
@@ -838,14 +838,11 @@ class DocsGenParser(object):
         for word in sorted_words:
             ltr = word[0].upper()
             if old_ltr != ltr:
-                if old_ltr:
-                    out.extend(target.definition_list_end())
-                out.extend(target.header(ltr.upper(), lev=3))
-                out.extend(target.definition_list_start())
+                out.extend(target.header(ltr.upper(), lev=2))
                 old_ltr = ltr
             defn = defs[word.lower()]
-            out.extend(target.definition_list_item(word, defn))
-        out.extend(target.definition_list_end())
+            out.extend(target.header(word.title(), lev=3))
+            out.extend(target.markdown_block([defn]))
         out = target.postprocess(out)
         outfile = os.path.join(target.docs_dir, self.GLOSSARYFILE)
         if not self.quiet:

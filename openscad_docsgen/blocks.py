@@ -99,10 +99,10 @@ class GenericBlock(object):
                     item = controller.items_by_name[name]
                     oline += item.get_link(target, currfile=self.origin.file, literalize=literalize, html=html)
                 elif name in controller.definitions:
-                    oline += target.get_link(name, anchor=name.lower(), file=controller.GLOSSARYFILE, literalize=literalize, html=html)
+                    oline += target.get_link(name, anchor=name.lower(), file="Glossary", literalize=literalize, html=html)
                 elif name in controller.defn_aliases:
                     name = controller.defn_aliases[name]
-                    oline += target.get_link(name, anchor=name.lower(), file=controller.GLOSSARYFILE, literalize=literalize, html=html)
+                    oline += target.get_link(name, anchor=name.lower(), file="Glossary", literalize=literalize, html=html)
                 else:
                     print(controller.definitions)
                     msg = "Invalid Link {{{{{0}}}}}".format(name)
@@ -274,7 +274,8 @@ class DefinitionsBlock(GenericBlock):
                 key: self.parse_links(info[1], controller, target, html=True)
                 for key, info in self.definitions.items()
             }
-        out.extend(target.definition_list(terms, defs))
+        for term in terms:
+            out.extend(target.markdown_block(["{}: {}".format(term.title(), defs[term])]))
         out.append("")
         return out
 

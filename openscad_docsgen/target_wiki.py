@@ -193,26 +193,6 @@ class Target_Wiki(object):
         out.extend(self.numbered_list_end())
         return out
 
-    def definition_list_start(self):
-        return ["<dl>"]
-
-    def definition_list_item(self, word, defn):
-        out = ["<dt>{}</dt>".format(word.title())]
-        out += ["<dd>"]
-        out.append(defn)
-        out += ["</dd>"]
-        return out
-
-    def definition_list_end(self):
-        return ["</dl>", ""]
-
-    def definition_list(self, words, defs):
-        out = self.definition_list_start()
-        for word in words:
-            out.extend(self.definition_list_item(word, defs[word.lower()]))
-        out.extend(self.definition_list_end())
-        return out
-
     def table(self, headers, rows):
         out = []
         hcells = []
