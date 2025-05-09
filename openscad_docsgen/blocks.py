@@ -101,8 +101,8 @@ class GenericBlock(object):
                 elif name in controller.definitions:
                     oline += target.get_link(name, anchor=name.lower(), file="Glossary", literalize=literalize, html=html)
                 elif name in controller.defn_aliases:
-                    name = controller.defn_aliases[name]
-                    oline += target.get_link(name, anchor=name.lower(), file="Glossary", literalize=literalize, html=html)
+                    term = controller.defn_aliases[name]
+                    oline += target.get_link(name, anchor=term.lower(), file="Glossary", literalize=literalize, html=html)
                 else:
                     print(controller.definitions)
                     msg = "Invalid Link {{{{{0}}}}}".format(name)
