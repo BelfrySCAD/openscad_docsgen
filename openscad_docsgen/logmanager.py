@@ -148,15 +148,29 @@ class LogManager(object):
             errorlog.add_entry(req.src_file, req.src_line, error_msg, ErrorLog.FAIL)
             return
 
+        # Create temp file in the same directory as src_file
+        src_dir = os.path.dirname(os.path.abspath(req.src_file))
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".scad", delete=False, mode="w", dir=src_dir) as temp_file:
+                for line in req.script_lines:
+                    temp_file.write(line + "\n")
+                script_file = temp_file.name
+        except OSError as e:
+            error_msg = f"Failed to create temporary file in {src_dir}: {str(e)}"
+            req.completed("FAIL", [], [error_msg], -1)
+            errorlog.add_entry(req.src_file, req.src_line, error_msg, ErrorLog.FAIL)
+            return
+
         # Create a temporary script file
-        with tempfile.NamedTemporaryFile(suffix=".scad", delete=False, mode="w") as temp_file:
-            for line in req.script_lines:
-                temp_file.write(line + "\n")
-            script_file = temp_file.name
+        #with tempfile.NamedTemporaryFile(suffix=".scad", delete=False, mode="w") as temp_file:
+        #    for line in req.script_lines:
+        #        temp_file.write(line + "\n")
+        #    script_file = temp_file.name
 
         try:
             # Run OpenSCAD with no output file to capture ECHO output
-
+            #src_dir = os.path.dirname(os.path.abspath(req.src_file))
+            #print(f"src_dir",src_dir)
             #openscad_bin = shutil.which("openscad")
             #print (f"openscad_bin",openscad_bin)
             #openscad_bin = "/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD"
@@ -173,6 +187,8 @@ class LogManager(object):
                 text=True,
                 timeout=10
             )
+            print ("GLU")
+            print (process.stdout)
             stdout = process.stdout.splitlines()
             stderr = process.stderr.splitlines()
             return_code = process.returncode

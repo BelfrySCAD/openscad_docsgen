@@ -401,9 +401,9 @@ class DocsGenParser(object):
                         ExampleBlock("Example", subtitle, [line], origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
                         subtitle = ""
             elif title == "Log":
-                print(f"Found Log block at {origin.file}:{origin.line}")
                 if self.curr_item:
-                    LogBlock(title, subtitle, body, origin, parent=parent, meta=meta)                        
+                    LogBlock(title, subtitle.strip(), body, origin, parent=parent, meta=meta)                     
+                    #LogBlock(title, subtitle, body, origin, parent=parent, meta=meta)   
             elif title in self.header_defs:
                 parcls, cls, data, cb = self.header_defs[title]
                 if not parcls or isinstance(self.curr_parent, parcls):

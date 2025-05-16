@@ -868,18 +868,32 @@ class LogBlock(GenericBlock):
         super().__init__(title, subtitle, body, origin, parent=parent)
         self.meta = meta
         self.log_output = []
+        self.log_title = subtitle if subtitle.strip() else "Log Output"  # Use subtitle or default
 
         fileblock = parent
         while fileblock.parent:
             fileblock = fileblock.parent
 
         script_lines = []
+        script_lines.extend(fileblock.includes)
         script_lines.extend(fileblock.common_code)  # Include common code but not includes
         for line in self.body:
             if line.strip().startswith("--"):
                 script_lines.append(line.strip()[2:])
             else:
                 script_lines.append(line)
+        # Append the module's body to include its ECHO statements
+        #if parent and hasattr(parent, 'body'):
+        #    script_lines.extend(parent.body)                
+
+        #if parent and hasattr(parent, 'body'):
+        #    script_lines.extend(parent.body)
+        #    module_name = parent.title if parent and hasattr(parent, 'title') else None
+        #    if module_name:
+        #        script_lines.append(f"{module_name}();")
+
+        print(f"script_lines")
+        print(script_lines)
         self.raw_script = script_lines
 
         self.generate_log()
@@ -909,8 +923,9 @@ class LogBlock(GenericBlock):
     def get_file_lines(self, controller, target):
         out = []
         if self.log_output:
-            out.extend(target.block_header("Log Output", ""))
-            out.extend(target.markdown_block(["```"] + self.log_output + ["```"]))
+            #out.extend(target.block_header("Log Output", ""))
+            out.extend(target.block_header(self.log_title, ""))
+            out.extend(target.markdown_block(["```log"] + self.log_output + ["```"]))
         return out
 
 class ImageBlock(GenericBlock):
