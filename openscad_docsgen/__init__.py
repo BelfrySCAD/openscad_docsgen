@@ -12,6 +12,7 @@ import platform
 from .errorlog import ErrorLog, errorlog
 from .parser import DocsGenParser, DocsGenException
 from .target import default_target, target_classes
+from .logmanager import log_manager
 
 
 class Options(object):
@@ -79,7 +80,8 @@ def processFiles(opts):
 
     if opts.dump_tree:
         docsgen.dump_full_tree()
-
+    log_manager.process_requests(test_only=opts.test_only)
+    
     if opts.gen_files or opts.test_only:
         docsgen.write_docs_files()
     if opts.gen_toc:
