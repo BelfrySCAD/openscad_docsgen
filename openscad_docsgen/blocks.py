@@ -868,7 +868,7 @@ class LogBlock(GenericBlock):
         super().__init__(title, subtitle, body, origin, parent=parent)
         self.meta = meta
         self.log_output = []
-        self.log_title = subtitle if subtitle.strip() else "Log Output"  # Use subtitle or default
+        self.log_title = subtitle if subtitle.strip() else "Log Output"
 
         fileblock = parent
         while fileblock.parent:
@@ -876,24 +876,12 @@ class LogBlock(GenericBlock):
 
         script_lines = []
         script_lines.extend(fileblock.includes)
-        script_lines.extend(fileblock.common_code)  # Include common code but not includes
+        script_lines.extend(fileblock.common_code)
         for line in self.body:
             if line.strip().startswith("--"):
                 script_lines.append(line.strip()[2:])
             else:
                 script_lines.append(line)
-        # Append the module's body to include its ECHO statements
-        #if parent and hasattr(parent, 'body'):
-        #    script_lines.extend(parent.body)                
-
-        #if parent and hasattr(parent, 'body'):
-        #    script_lines.extend(parent.body)
-        #    module_name = parent.title if parent and hasattr(parent, 'title') else None
-        #    if module_name:
-        #        script_lines.append(f"{module_name}();")
-
-        print(f"script_lines")
-        print(script_lines)
         self.raw_script = script_lines
 
         self.generate_log()
