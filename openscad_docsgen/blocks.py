@@ -909,7 +909,7 @@ class ImageBlock(GenericBlock):
         self.image_url_rel = os.path.join("images", file_base, proposed_name)
         self.image_url = os.path.join(file_dir, self.image_url_rel)
 
-    def generate_image(self, target):
+    def generate_image(self, target, parser=None):
         self.image_req = None
         if "NORENDER" in self.meta:
             return
@@ -922,12 +922,13 @@ class ImageBlock(GenericBlock):
             outfile = os.path.join(target.docs_dir, self.image_url)
             outdir = os.path.dirname(outfile)
             os.makedirs(outdir, mode=0o744, exist_ok=True)
-
+            default_colorscheme = parser.default_colorscheme if parser else "Cornfield"
             self.image_req = image_manager.new_request(
                 self.origin.file, self.origin.line,
                 outfile, self.raw_script, self.meta,
                 starting_cb=self._img_proc_start,
-                completion_cb=self._img_proc_done
+                completion_cb=self._img_proc_done,
+                default_colorscheme=default_colorscheme
             )
 
     def get_data(self):
@@ -973,7 +974,7 @@ class ImageBlock(GenericBlock):
         if "Hide" in self.meta:
             return out
 
-        self.generate_image(target)
+        self.generate_image(target, controller)
 
         code = []
         code.extend([line for line in fileblock.includes])
