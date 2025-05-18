@@ -883,7 +883,6 @@ class LogBlock(GenericBlock):
             else:
                 script_lines.append(line)
         self.raw_script = script_lines
-
         self.generate_log()
 
     def generate_log(self):
@@ -892,8 +891,9 @@ class LogBlock(GenericBlock):
             self.raw_script,
             starting_cb=self._log_proc_start,
             completion_cb=self._log_proc_done,
-            verbose=True  # Enable verbose logging for debugging
+            verbose=True  
         )
+        log_manager.process_requests()
 
     def _log_proc_start(self, req):
         print("  Processing log for {}:{}... ".format(self.origin.file, self.origin.line), end='')
@@ -905,15 +905,20 @@ class LogBlock(GenericBlock):
             print("SUCCESS")
         else:
             self.log_output = []
-            print("FAIL")
+            #print("FAIL")
+            print("FAIL: " + "\n".join(req.errors + req.warnings))
         sys.stdout.flush()
 
     def get_file_lines(self, controller, target):
         out = []
-        if self.log_output:
+        #if self.log_output:
+        if self.log_request.success and self.log_request.echos:    
             #out.extend(target.block_header("Log Output", ""))
             out.extend(target.block_header(self.log_title, ""))
-            out.extend(target.markdown_block(["```log"] + self.log_output + ["```"]))
+            # out.extend(target.markdown_block(["```log"] + self.log_output + ["```"]))
+            out.extend(target.markdown_block(["```log"] + self.log_request.echos + ["```"]))
+        else:
+            print(f"WARNING: No log output for {self.origin.file}:{self.origin.line}")    
         return out
 
 class ImageBlock(GenericBlock):

@@ -61,7 +61,6 @@ class LogRequest(object):
                 self.warnings.append(line)
             elif "ERROR:" in line:
                 self.errors.append(line)
-
         if self.completion_cb:
             self.completion_cb(self)
 
