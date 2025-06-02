@@ -4,12 +4,16 @@ from __future__ import print_function
 
 import os
 import re
+import sys
 import math
+import numpy
 import filecmp
 import os.path
 import subprocess
 from collections import namedtuple
 
+from scipy.linalg import norm
+from imageio import imread
 from PIL import Image, ImageChops
 from openscad_runner import RenderMode, OpenScadRunner, ColorScheme
 
@@ -288,22 +292,19 @@ class ImageManager(object):
             req.completed("REPLACE", osc)
 
     @staticmethod
-    def image_compare(file1, file2, max_rms=2.0):
+    def image_compare(file1, file2, max_diff=64.0):
         """
         Compare two image files.  Returns true if they are almost exactly the same.
         """
         if file1.endswith(".gif") and file2.endswith(".gif"):
             return filecmp.cmp(file1, file2, shallow=False)
         else:
-            img1 = Image.open(file1)
-            img2 = Image.open(file2)
-            if img1.size != img2.size or img1.getbands() != img2.getbands():
-                return False
-            diff = ImageChops.difference(img1, img2).histogram()
-            sq = (value * (i % 256) ** 2 for i, value in enumerate(diff))
-            sum_squares = sum(sq)
-            rms = math.sqrt(sum_squares / float(img1.size[0] * img1.size[1]))
-            return rms <= max_rms
+            img1 = imread(file1).astype(float)
+            img2 = imread(file2).astype(float)
+            # calculate the difference and its norms
+            diff = img1 - img2  # elementwise for scipy arrays
+            diff_max = numpy.max(abs(diff))
+            return diff_max <= max_diff
 
 
 image_manager = ImageManager()
