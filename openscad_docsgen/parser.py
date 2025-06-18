@@ -47,8 +47,7 @@ class DocsGenParser(object):
         self.definitions = {}
         self.defn_aliases = {}
         self.syntags_data = {}
-        self.enabled_features = []
-
+       
         sfx = self.target.get_suffix()
         self.TOCFILE = "TOC" + sfx
         self.TOPICFILE = "Topics" + sfx
@@ -230,8 +229,9 @@ class DocsGenParser(object):
                     raise DocsGenException(title, "Body not supported, while declaring block:")
                 self.opts.docs_dir = subtitle.strip().rstrip("/")
                 self.opts.update_target()
-            elif title == "EnabledFatures":
-                self.enabled_features = [item.strip() for item in subtitle.split(",")]
+            elif title == "EnabledFeatures":
+                self.opts.enabled_features = [item.strip() for item in subtitle.split(",")]
+                self.opts.update_target()
             elif title == "UsePNGAnimations":
                 if origin.file != self.RCFILE:
                     raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
@@ -388,19 +388,19 @@ class DocsGenParser(object):
                         self.defn_aliases[term] = main_term
             elif title == "Figure":
                 self._check_filenode(title, origin)
-                FigureBlock(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
+                FigureBlock(title, subtitle, body, origin, verbose=self.opts.verbose, parent=parent, enabled_features=self.opts.enabled_features, meta=meta, use_apngs=self.opts.png_animation)
             elif title == "Example":
                 if self.curr_item:
-                    ExampleBlock(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
+                    ExampleBlock(title, subtitle, body, origin, verbose=self.opts.verbose, parent=parent, enabled_features=self.opts.enabled_features, meta=meta, use_apngs=self.opts.png_animation)
             elif title == "Figures":
                 self._check_filenode(title, origin)
                 for lnum, line in enumerate(body):
-                    FigureBlock("Figure", subtitle, [line], origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
+                    FigureBlock("Figure", subtitle, [line], origin, verbose=self.opts.verbose, parent=parent, enabled_features=self.opts.enabled_features, meta=meta, use_apngs=self.opts.png_animation)
                     subtitle = ""
             elif title == "Examples":
                 if self.curr_item:
                     for lnum, line in enumerate(body):
-                        ExampleBlock("Example", subtitle, [line], origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
+                        ExampleBlock("Example", subtitle, [line], origin, verbose=self.opts.verbose, enabled_features=self.opts.enabled_features, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
                         subtitle = ""
             elif title in self.header_defs:
                 parcls, cls, data, cb = self.header_defs[title]

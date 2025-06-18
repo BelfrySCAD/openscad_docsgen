@@ -97,7 +97,8 @@ class MarkdownImageGen(object):
                                 fileroot+".md", linenum,
                                 imgfile, script, extyp,
                                 starting_cb=self.img_started,
-                                completion_cb=self.img_completed
+                                completion_cb=self.img_completed,
+                                verbose=opts.verbose
                             )
                             if show_script:
                                 out.append("```openscad")

@@ -863,7 +863,7 @@ class ItemBlock(LabelBlock):
 
 
 class ImageBlock(GenericBlock):
-    def __init__(self, title, subtitle, body, origin, parent=None, meta="", use_apngs=False):
+    def __init__(self, title, subtitle, body, origin, verbose=False, enabled_features=[], parent=None, meta="", use_apngs=False):
         super().__init__(title, subtitle, body, origin, parent=parent)
         fileblock = parent
         while fileblock.parent:
@@ -908,6 +908,8 @@ class ImageBlock(GenericBlock):
         file_base = os.path.splitext(file_name)[0]
         self.image_url_rel = os.path.join("images", file_base, proposed_name)
         self.image_url = os.path.join(file_dir, self.image_url_rel)
+        self.verbose = verbose
+        self.enabled_features = enabled_features
 
     def generate_image(self, target):
         self.image_req = None
@@ -927,7 +929,9 @@ class ImageBlock(GenericBlock):
                 self.origin.file, self.origin.line,
                 outfile, self.raw_script, self.meta,
                 starting_cb=self._img_proc_start,
-                completion_cb=self._img_proc_done
+                completion_cb=self._img_proc_done,
+                verbose=self.verbose,
+                enabled_features=self.enabled_features
             )
 
     def get_data(self):
@@ -950,6 +954,7 @@ class ImageBlock(GenericBlock):
             return
         pfx = "     "
         out = "Failed OpenSCAD script:\n"
+        out += "Features: {}\n".format(self.enabled_features.join(', '))
         out += pfx + "Image: {}\n".format( os.path.basename(req.image_file) )
         out += pfx + "cmd-line = {}\n".format(" ".join(req.cmdline))
         for line in req.stdout:
@@ -1003,13 +1008,13 @@ class ImageBlock(GenericBlock):
 
 
 class FigureBlock(ImageBlock):
-    def __init__(self, title, subtitle, body, origin, parent, meta="", use_apngs=False):
-        super().__init__(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=use_apngs)
+    def __init__(self, title, subtitle, body, origin, parent, verbose=False, enabled_features=[], meta="", use_apngs=False):
+        super().__init__(title, subtitle, body, origin, verbose=verbose, enabled_features=enabled_features, parent=parent, meta=meta, use_apngs=use_apngs)
 
 
 class ExampleBlock(ImageBlock):
-    def __init__(self, title, subtitle, body, origin, parent, meta="", use_apngs=False):
-        super().__init__(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=use_apngs)
+    def __init__(self, title, subtitle, body, origin, parent, verbose=False, enabled_features=[], meta="", use_apngs=False):
+        super().__init__(title, subtitle, body, origin, verbose=verbose, enabled_features=enabled_features, parent=parent, meta=meta, use_apngs=use_apngs)
 
 
 
