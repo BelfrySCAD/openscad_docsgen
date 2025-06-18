@@ -47,6 +47,7 @@ class DocsGenParser(object):
         self.definitions = {}
         self.defn_aliases = {}
         self.syntags_data = {}
+        self.enabled_features = []
 
         sfx = self.target.get_suffix()
         self.TOCFILE = "TOC" + sfx
@@ -229,6 +230,8 @@ class DocsGenParser(object):
                     raise DocsGenException(title, "Body not supported, while declaring block:")
                 self.opts.docs_dir = subtitle.strip().rstrip("/")
                 self.opts.update_target()
+            elif title == "EnabledFatures":
+                self.enabled_features = [item.strip() for item in subtitle.split(",")]
             elif title == "UsePNGAnimations":
                 if origin.file != self.RCFILE:
                     raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
