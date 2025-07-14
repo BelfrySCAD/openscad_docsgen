@@ -954,7 +954,6 @@ class ImageBlock(GenericBlock):
             return
         pfx = "     "
         out = "Failed OpenSCAD script:\n"
-        out += "Features: {}\n".format(self.enabled_features.join(', '))
         out += pfx + "Image: {}\n".format( os.path.basename(req.image_file) )
         out += pfx + "cmd-line = {}\n".format(" ".join(req.cmdline))
         for line in req.stdout:
