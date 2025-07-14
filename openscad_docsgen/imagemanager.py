@@ -129,7 +129,7 @@ class ImageRequest(object):
 
         match = self._fps_re.search(image_meta)
         if match:
-            self.frame_ms = int(1000/match.group(1))
+            self.frame_ms = int(1000/float(match.group(1)))
         match = self._framems_re.search(image_meta)
         if match:
             self.frame_ms = int(match.group(1))
@@ -303,6 +303,8 @@ class ImageManager(object):
         else:
             img1 = imread(file1).astype(float)
             img2 = imread(file2).astype(float)
+            if img1.shape != img2.shape:
+                return False
             # calculate the difference and its norms
             diff = img1 - img2  # elementwise for scipy arrays
             diff_max = numpy.max(abs(diff))
