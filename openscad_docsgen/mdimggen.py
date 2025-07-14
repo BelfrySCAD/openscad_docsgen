@@ -152,6 +152,7 @@ def mdimggen_main():
     parser.add_argument('-a', '--png-animation', action="store_true",
                         default=defaults.get("png_animations", True),
                         help='If given, animations are created using animated PNGs instead of GIFs.')
+    parser.add_argument('-v', '--verbose', help='Dump the openscad commands', action="store_true")
     parser.add_argument('srcfiles', nargs='*', help='List of input markdown files.')
     args = parser.parse_args()
 
