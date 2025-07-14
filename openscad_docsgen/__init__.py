@@ -35,6 +35,8 @@ class Options(object):
         self.report = args.report
         self.dump_tree = args.dump_tree
         self.png_animation = args.png_animation
+        self.verbose = args.verbose
+        self.enabled_features = [item.strip() for item in args.enabled_features.split(",")]
         self.sidebar_header = []
         self.sidebar_middle = []
         self.sidebar_footer = []
@@ -105,7 +107,7 @@ def processFiles(opts):
 def main():
     target_profiles = ["githubwiki", "stdwiki"]
 
-    parser = argparse.ArgumentParser(prog='openscad-docsgen')
+    parser = argparse.ArgumentParser(prog='openscad-docsgen', )
     parser.add_argument('-D', '--docs-dir', default="docs",
                         help='The directory to put generated documentation in.')
     parser.add_argument('-T', '--test-only', action="store_true",
@@ -142,6 +144,8 @@ def main():
                         help='If given, dumps the documentation tree for debugging.')
     parser.add_argument('-p', '--target-profile', choices=target_classes.keys(), default=default_target,
                         help='Sets the output target profile.  Defaults to "{}"'.format(default_target))
+    parser.add_argument('-e', '--enabled_features', default='', help='List of enabled experimental features')
+    parser.add_argument('-v', '--verbose', help='Dump the openscad commands', action="store_true")
     parser.add_argument('srcfiles', nargs='*', help='List of input source files.')
     opts = Options(parser.parse_args())
 
