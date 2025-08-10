@@ -8,6 +8,7 @@ import sys
 from .utils import flatten
 from .errorlog import ErrorLog, errorlog
 from .imagemanager import image_manager
+from .logmanager import log_manager
 
 
 class DocsGenException(Exception):
@@ -861,6 +862,59 @@ class ItemBlock(LabelBlock):
         hdr = (self.parent.get_figure_num() + ".") if self.parent else ""
         return "{}{}".format(hdr, self.figure_num)
 
+
+class LogBlock(GenericBlock):
+    def __init__(self, title, subtitle, body, origin, parent=None, meta=""):
+        super().__init__(title, subtitle, body, origin, parent=parent)
+        self.meta = meta
+        self.log_output = []
+        self.log_title = subtitle if subtitle.strip() else "Log Output"
+
+        fileblock = parent
+        while fileblock.parent:
+            fileblock = fileblock.parent
+
+        script_lines = []
+        script_lines.extend(fileblock.includes)
+        script_lines.extend(fileblock.common_code)
+        for line in self.body:
+            if line.strip().startswith("--"):
+                script_lines.append(line.strip()[2:])
+            else:
+                script_lines.append(line)
+        self.raw_script = script_lines
+
+        self.generate_log()
+
+    def generate_log(self):
+        self.log_request = log_manager.new_request(
+            self.origin.file, self.origin.line,
+            self.raw_script,
+            starting_cb=self._log_proc_start,
+            completion_cb=self._log_proc_done,
+            verbose=True  # Enable verbose logging for debugging
+        )
+
+    def _log_proc_start(self, req):
+        print("  Processing log for {}:{}... ".format(self.origin.file, self.origin.line), end='')
+        sys.stdout.flush()
+
+    def _log_proc_done(self, req):
+        if req.success:
+            self.log_output = req.echos
+            print("SUCCESS")
+        else:
+            self.log_output = []
+            print("FAIL")
+        sys.stdout.flush()
+
+    def get_file_lines(self, controller, target):
+        out = []
+        if self.log_output:
+            #out.extend(target.block_header("Log Output", ""))
+            out.extend(target.block_header(self.log_title, ""))
+            out.extend(target.markdown_block(["```log"] + self.log_output + ["```"]))
+        return out
 
 class ImageBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, parent=None, meta="", use_apngs=False):

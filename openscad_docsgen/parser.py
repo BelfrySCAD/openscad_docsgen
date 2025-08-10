@@ -9,6 +9,7 @@ import glob
 from .errorlog import ErrorLog, errorlog
 from .imagemanager import image_manager
 from .blocks import *
+from .logmanager import log_manager
 from .filehashes import FileHashes
 
 
@@ -399,6 +400,9 @@ class DocsGenParser(object):
                     for lnum, line in enumerate(body):
                         ExampleBlock("Example", subtitle, [line], origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
                         subtitle = ""
+            elif title == "Log":
+                if self.curr_item:
+                    LogBlock(title, subtitle.strip(), body, origin, parent=parent, meta=meta)                     
             elif title in self.header_defs:
                 parcls, cls, data, cb = self.header_defs[title]
                 if not parcls or isinstance(self.curr_parent, parcls):
