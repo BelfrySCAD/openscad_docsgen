@@ -90,7 +90,7 @@ class DocsGenParser(object):
         aliases = [x.strip() for x in subtitle.split(",")]
         self.curr_item.aliases.extend(aliases)
         for alias in aliases:
-            self.items_by_name[alias.lower()] = self.curr_item
+            self.items_by_name[alias] = self.curr_item
 
     def _validate_colorscheme(self, colorscheme):
         """Validate the color scheme against OpenSCAD's supported schemes."""
@@ -447,7 +447,7 @@ class DocsGenParser(object):
                     msg = "Previous declaration of `{}` at {}:{}, Redeclared:".format(subtitle, prevorig.file, prevorig.line)
                     raise DocsGenException(title, msg)
                 item = ItemBlock(title, subtitle, body, origin, parent=parent)
-                self.items_by_name[subtitle.lower()] = item
+                self.items_by_name[subtitle] = item
                 self.curr_item = item
                 self.curr_parent = item
             elif title == "Synopsis":
