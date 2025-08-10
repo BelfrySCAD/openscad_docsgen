@@ -12,6 +12,7 @@ import platform
 
 from .errorlog import errorlog, ErrorLog
 from .imagemanager import image_manager
+from .logmanager import log_manager
 from .filehashes import FileHashes
 
 
@@ -52,6 +53,11 @@ class MarkdownImageGen(object):
         errorlog.add_entry(req.src_file, req.src_line, out, ErrorLog.FAIL)
         sys.stderr.flush()
 
+    def log_completed(self, req):
+        if not req.success:
+            out = "\n".join(req.errors + req.warnings)
+            errorlog.add_entry(req.src_file, req.src_line, out, ErrorLog.FAIL)
+
     def processFiles(self, srcfiles):
         opts = self.opts
         image_root = os.path.join(opts.docs_dir, opts.image_root)
@@ -62,6 +68,7 @@ class MarkdownImageGen(object):
             sys.stdout.flush()
 
             out = []
+            log_requests = []
             with open(infile, "r") as f:
                 script = []
                 extyp = ""
@@ -72,9 +79,14 @@ class MarkdownImageGen(object):
                 for line in f.readlines():
                     linenum += 1
                     line = line.rstrip("\n")
-                    if line.startswith("```openscad"):
+                    if line.startswith("```openscad-log"):
+                        in_script = True
+                        is_log_block = True
+                        script = []                        
+                    elif line.startswith("```openscad"):
                         in_script = True;
-                        if "-" in line:
+                        is_log_block = False
+                        if "-" in line and not line.startswith("```openscad-log"):
                             extyp = line.split("-")[1]
                         else:
                             extyp = ""
@@ -84,31 +96,47 @@ class MarkdownImageGen(object):
                     elif in_script:
                         if line == "```":
                             in_script = False
-                            if opts.png_animation:
-                                fext = "png"
-                            elif any(x in extyp for x in ("Anim", "Spin")):
-                                fext = "gif"
-                            else:
-                                fext = "png"
-                            fname = "{}_{}.{}".format(fileroot, imgnum, fext)
-                            img_rel_url = os.path.join(opts.image_root, fname)
-                            imgfile = os.path.join(opts.docs_dir, img_rel_url)
-                            image_manager.new_request(
-                                fileroot+".md", linenum,
-                                imgfile, script, extyp,
-                                starting_cb=self.img_started,
-                                completion_cb=self.img_completed,
-                                verbose=opts.verbose
-                            )
-                            if show_script:
-                                out.append("```openscad")
-                                for line in script:
-                                    if not line.startswith("--"):
-                                        out.append(line)
-                                out.append("```")
-                            out.append("![Figure {}]({})".format(imgnum, img_rel_url))
+                            if is_log_block:
+                                req = log_manager.new_request(
+                                    infile, linenum, script,
+                                    completion_cb=self.log_completed,
+                                    verbose=True
+                                )
+                                log_manager.process_requests()
+                                out.append("```log")
+                                if req.success and req.echos:
+                                    out.extend(req.echos)
+                                else:
+                                    out.append("No log output generated.")
+                                out.append("```")    
+                            else:    
+                                if opts.png_animation:
+                                    fext = "png"
+                                elif any(x in extyp for x in ("Anim", "Spin")):
+                                    fext = "gif"
+                                else:
+                                    fext = "png"
+                                fname = "{}_{}.{}".format(fileroot, imgnum, fext)
+                                img_rel_url = os.path.join(opts.image_root, fname)
+                                imgfile = os.path.join(opts.docs_dir, img_rel_url)
+                                image_manager.new_request(
+                                    fileroot+".md", linenum,
+                                    imgfile, script, extyp,
+                                    default_colorscheme=opts.colorscheme,
+                                    starting_cb=self.img_started,
+                                    completion_cb=self.img_completed,
+                                    verbose=opts.verbose
+                                )
+                                if show_script:
+                                    out.append("```openscad")
+                                    for line in script:
+                                        if not line.startswith("--"):
+                                            out.append(line)
+                                    out.append("```")
+                                out.append("![Figure {}]({})".format(imgnum, img_rel_url))
                             show_script = True
                             extyp = ""
+                            is_log_block = False
                         else:
                             script.append(line)
                     else:
@@ -122,7 +150,9 @@ class MarkdownImageGen(object):
             has_changed = self.filehashes.is_changed(infile)
             if opts.force or opts.test_only or has_changed:
                 image_manager.process_requests(test_only=opts.test_only)
+                log_manager.process_requests(test_only=opts.test_only)
             image_manager.purge_requests()
+            log_manager.purge_requests()
 
             if errorlog.file_has_errors(infile):
                 self.filehashes.invalidate(infile)
@@ -137,7 +167,6 @@ def mdimggen_main():
             data = yaml.safe_load(f)
         if data is not None:
             defaults = data
-
     parser = argparse.ArgumentParser(prog='openscad-mdimggen')
     parser.add_argument('-D', '--docs-dir', default=defaults.get("docs_dir", "docs"),
                         help='The directory to put generated documentation in.')
@@ -153,6 +182,8 @@ def mdimggen_main():
                         default=defaults.get("png_animations", True),
                         help='If given, animations are created using animated PNGs instead of GIFs.')
     parser.add_argument('-v', '--verbose', help='Dump the openscad commands', action="store_true")
+    parser.add_argument('-C', '--colorscheme', default=defaults.get("ColorScheme", "Cornfield"),
+                        help='The color scheme for rendering images (e.g., Tomorrow).')    
     parser.add_argument('srcfiles', nargs='*', help='List of input markdown files.')
     args = parser.parse_args()
 

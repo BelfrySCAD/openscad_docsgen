@@ -8,6 +8,7 @@ import sys
 from .utils import flatten
 from .errorlog import ErrorLog, errorlog
 from .imagemanager import image_manager
+from .logmanager import log_manager
 
 
 class DocsGenException(Exception):
@@ -862,6 +863,64 @@ class ItemBlock(LabelBlock):
         return "{}{}".format(hdr, self.figure_num)
 
 
+class LogBlock(GenericBlock):
+    def __init__(self, title, subtitle, body, origin, parent=None, meta=""):
+        super().__init__(title, subtitle, body, origin, parent=parent)
+        self.meta = meta
+        self.log_output = []
+        self.log_title = subtitle if subtitle.strip() else "Log Output"
+
+        fileblock = parent
+        while fileblock.parent:
+            fileblock = fileblock.parent
+
+        script_lines = []
+        script_lines.extend(fileblock.includes)
+        script_lines.extend(fileblock.common_code)
+        for line in self.body:
+            if line.strip().startswith("--"):
+                script_lines.append(line.strip()[2:])
+            else:
+                script_lines.append(line)
+        self.raw_script = script_lines
+        self.generate_log()
+
+    def generate_log(self):
+        self.log_request = log_manager.new_request(
+            self.origin.file, self.origin.line,
+            self.raw_script,
+            starting_cb=self._log_proc_start,
+            completion_cb=self._log_proc_done,
+            verbose=True  
+        )
+        log_manager.process_requests()
+
+    def _log_proc_start(self, req):
+        print("  Processing log for {}:{}... ".format(self.origin.file, self.origin.line), end='')
+        sys.stdout.flush()
+
+    def _log_proc_done(self, req):
+        if req.success:
+            self.log_output = req.echos
+            print("SUCCESS")
+        else:
+            self.log_output = []
+            #print("FAIL")
+            print("FAIL: " + "\n".join(req.errors + req.warnings))
+        sys.stdout.flush()
+
+    def get_file_lines(self, controller, target):
+        out = []
+        #if self.log_output:
+        if self.log_request.success and self.log_request.echos:    
+            #out.extend(target.block_header("Log Output", ""))
+            out.extend(target.block_header(self.log_title, ""))
+            # out.extend(target.markdown_block(["```log"] + self.log_output + ["```"]))
+            out.extend(target.markdown_block(["```log"] + self.log_request.echos + ["```"]))
+        else:
+            print(f"WARNING: No log output for {self.origin.file}:{self.origin.line}")    
+        return out
+
 class ImageBlock(GenericBlock):
     def __init__(self, title, subtitle, body, origin, verbose=False, enabled_features=[], parent=None, meta="", use_apngs=False):
         super().__init__(title, subtitle, body, origin, parent=parent)
@@ -911,7 +970,7 @@ class ImageBlock(GenericBlock):
         self.verbose = verbose
         self.enabled_features = enabled_features
 
-    def generate_image(self, target):
+    def generate_image(self, target, parser=None):
         self.image_req = None
         if "NORENDER" in self.meta:
             return
@@ -924,14 +983,15 @@ class ImageBlock(GenericBlock):
             outfile = os.path.join(target.docs_dir, self.image_url)
             outdir = os.path.dirname(outfile)
             os.makedirs(outdir, mode=0o744, exist_ok=True)
-
+            default_colorscheme = parser.default_colorscheme if parser else "Cornfield"
             self.image_req = image_manager.new_request(
                 self.origin.file, self.origin.line,
                 outfile, self.raw_script, self.meta,
                 starting_cb=self._img_proc_start,
                 completion_cb=self._img_proc_done,
                 verbose=self.verbose,
-                enabled_features=self.enabled_features
+                enabled_features=self.enabled_features,
+                default_colorscheme=default_colorscheme
             )
 
     def get_data(self):
@@ -977,7 +1037,7 @@ class ImageBlock(GenericBlock):
         if "Hide" in self.meta:
             return out
 
-        self.generate_image(target)
+        self.generate_image(target, controller)
 
         code = []
         code.extend([line for line in fileblock.includes])
