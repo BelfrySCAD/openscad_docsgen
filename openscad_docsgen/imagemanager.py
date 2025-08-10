@@ -265,7 +265,19 @@ class ImageManager(object):
                 enabled=req.enabled_features,
             )
             osc.run()
-            osc.warnings = [line for line in osc.warnings if "Viewall and autocenter disabled" not in line]
+            masked_warnings = [
+                "Viewall and autocenter disabled",
+                "failed with error, falling back to Nef operation",
+            ]
+            warnings = []
+            for line in osc.warnings:
+                is_masked = False
+                for mask in masked_warnings:
+                    if mask in line:
+                        is_masked = True
+                if not is_masked:
+                    warnings.append(line)
+            osc.warnings = warnings
 
         finally:
             os.unlink(script_file)
