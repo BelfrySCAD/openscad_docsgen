@@ -251,7 +251,7 @@ class DocsGenParser(object):
                 self.opts.docs_dir = subtitle.strip().rstrip("/")
                 self.opts.update_target()
             elif title == "EnabledFeatures":
-                self.opts.enabled_features = [item.strip() for item in subtitle.split(",")]
+                self.opts.enabled_features = [item.strip() for item in subtitle.split(",") if item.strip()]
                 self.opts.update_target()
             elif title == "UsePNGAnimations":
                 if origin.file != self.RCFILE:
@@ -396,7 +396,6 @@ class DocsGenParser(object):
                 self._check_filenode(title, origin)
                 self.curr_file_block.common_code.extend(body)
             elif title == "Definitions":
-                print("DEF")
                 self._check_filenode(title, origin)
                 block = DefinitionsBlock(title, subtitle, body, origin, parent=parent)
                 for main_term, info in block.definitions.items():
