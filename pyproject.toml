@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "openscad_docsgen"
-version = "2.0.50"
+version = "2.0.51"
 authors = [
   { name="Revar Desmera", email="revarbat@gmail.com" },
 ]
@@ -35,7 +35,7 @@ dependencies = [
     "pillow>=10.3.0",
     "PyYAML>=6.0",
     "scipy>=1.15.3",
-    "openscad_runner@git+https://github.com/pinkfish/openscad_runner"
+    "openscad_runner>=1.2.1",
 ]
 
 [project.scripts]
@@ -44,7 +44,7 @@ openscad-mdimggen = "openscad_docsgen.mdimggen:mdimggen_main"
 
 [project.urls]
 "Homepage" = "https://github.com/belfryscad/openscad_docsgen"
-"Repository" = "https://github.com/pinkfish/openscad_docsgen"
+"Repository" = "https://github.com/belfryscad/openscad_docsgen"
 "Bug Tracker" = "https://github.com/belfryscad/openscad_docsgen/issues"
 "Releases" = "https://github.com/belfryscad/openscad_docsgen/releases"
 "Usage" = "https://github.com/belfryscad/openscad_docsgen/README.rst"
