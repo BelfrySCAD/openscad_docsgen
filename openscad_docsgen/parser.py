@@ -48,6 +48,7 @@ class DocsGenParser(object):
         self.definitions = {}
         self.defn_aliases = {}
         self.syntags_data = {}
+        self.default_colorscheme = "Cornfield"
 
         sfx = self.target.get_suffix()
         self.TOCFILE = "TOC" + sfx
@@ -90,6 +91,17 @@ class DocsGenParser(object):
         self.curr_item.aliases.extend(aliases)
         for alias in aliases:
             self.items_by_name[alias] = self.curr_item
+
+    def _validate_colorscheme(self, colorscheme):
+        """Validate the color scheme against OpenSCAD's supported schemes."""
+        valid_schemes = [
+            'Cornfield', 'Metallic', 'Sunset', 'Starnight', 'ClearSky', 'BeforeDawn', 'Nature', 'Daylight Gem', 'Nocturnal Gem', 
+            'DeepOcean', 'Solarized', 'Tomorrow', 'Tomorrow Night' 
+        ]
+        if colorscheme not in valid_schemes:
+            errorlog.add_entry(self.RCFILE, 0, f"Invalid ColorScheme '{colorscheme}' in {self.RCFILE}. Using 'Cornfield'.", ErrorLog.WARNING)
+            return 'Cornfield'
+        return colorscheme
 
     def _skip_lines(self, lines, line_num=0):
         while line_num < len(lines):
@@ -204,6 +216,14 @@ class DocsGenParser(object):
             origin = OriginInfo(src_file, hdr_line_num+1)
             if title == "DefineHeader":
                 self._define_blocktype(subtitle, meta)
+            elif title == "ColorScheme":
+                if origin.file != self.RCFILE:
+                    raise DocsGenException(title, f"Block disallowed outside of {self.RCFILE} file:")
+                if body:
+                    raise DocsGenException(title, "Body not supported, while declaring block:")
+                if not subtitle:
+                    raise DocsGenException(title, "Must provide a color scheme (e.g., Tomorrow), while declaring block:")
+                self.default_colorscheme = self._validate_colorscheme(subtitle.strip())
             elif title == "IgnoreFiles":
                 if origin.file != self.RCFILE:
                     raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
