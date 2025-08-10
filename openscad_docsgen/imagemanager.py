@@ -29,11 +29,12 @@ class ImageRequest(object):
     _vpf_re = re.compile(r'VPF *= *([a-zA-Z0-9_()+*/$.-]+)')
     _color_scheme_re = re.compile(r'ColorScheme *= *([a-zA-Z0-9_ ]+)')
 
-    def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False, default_colorscheme="Cornfield"):
+    def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False, enabled_features=[], default_colorscheme="Cornfield"):
         self.src_file = src_file
         self.src_line = src_line
         self.image_file = image_file
         self.image_meta = image_meta
+        self.enabled_features = enabled_features
         self.script_lines = [
                 line[2:] if line.startswith("--") else line
                 for line in script_lines
@@ -204,10 +205,10 @@ class ImageManager(object):
     def purge_requests(self):
         self.requests = []
 
-    def new_request(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False, default_colorscheme="Cornfield"):
+    def new_request(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False, enabled_features=[], default_colorscheme="Cornfield"):
         if "NORENDER" in image_meta:
             raise Exception("Cannot render scripts marked NORENDER")
-        req = ImageRequest(src_file, src_line, image_file, script_lines, image_meta, starting_cb, completion_cb, verbose=verbose,default_colorscheme=default_colorscheme)
+        req = ImageRequest(src_file, src_line, image_file, script_lines, image_meta, starting_cb, completion_cb, verbose=verbose, enabled_features=enabled_features, default_colorscheme=default_colorscheme)
         self.requests.append(req)
         return req
 
@@ -260,7 +261,8 @@ class ImageManager(object):
                 show_scales=req.show_scales,
                 render_mode=render_mode,
                 hard_warnings=no_vp,
-                verbose=req.verbose
+                verbose=req.verbose,
+                enabled=req.enabled_features,
             )
             osc.run()
             osc.warnings = [line for line in osc.warnings if "Viewall and autocenter disabled" not in line]

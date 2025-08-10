@@ -90,7 +90,7 @@ class DocsGenParser(object):
         aliases = [x.strip() for x in subtitle.split(",")]
         self.curr_item.aliases.extend(aliases)
         for alias in aliases:
-            self.items_by_name[alias] = self.curr_item
+            self.items_by_name[alias.lower()] = self.curr_item
 
     def _validate_colorscheme(self, colorscheme):
         """Validate the color scheme against OpenSCAD's supported schemes."""
@@ -250,6 +250,9 @@ class DocsGenParser(object):
                     raise DocsGenException(title, "Body not supported, while declaring block:")
                 self.opts.docs_dir = subtitle.strip().rstrip("/")
                 self.opts.update_target()
+            elif title == "EnabledFeatures":
+                self.opts.enabled_features = [item.strip() for item in subtitle.split(",")]
+                self.opts.update_target()
             elif title == "UsePNGAnimations":
                 if origin.file != self.RCFILE:
                     raise DocsGenException(title, "Block disallowed outside of {} file:".format(self.RCFILE))
@@ -399,26 +402,26 @@ class DocsGenParser(object):
                 for main_term, info in block.definitions.items():
                     terms, defn = info
                     for term in terms:
-                        if term in self.definitions or term in self.defn_aliases:
+                        if term.lower() in self.definitions or term in self.defn_aliases:
                             raise DocsGenException(title, 'Term "{}" re-defined, while declaring block:'.format(term))
-                    self.definitions[main_term] = (terms, defn)
+                    self.definitions[main_term.lower()] = (terms, defn)
                     for term in terms[1:]:
-                        self.defn_aliases[term] = main_term
+                        self.defn_aliases[term.lower()] = main_term
             elif title == "Figure":
                 self._check_filenode(title, origin)
-                FigureBlock(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
+                FigureBlock(title, subtitle, body, origin, verbose=self.opts.verbose, parent=parent, enabled_features=self.opts.enabled_features, meta=meta, use_apngs=self.opts.png_animation)
             elif title == "Example":
                 if self.curr_item:
-                    ExampleBlock(title, subtitle, body, origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
+                    ExampleBlock(title, subtitle, body, origin, verbose=self.opts.verbose, parent=parent, enabled_features=self.opts.enabled_features, meta=meta, use_apngs=self.opts.png_animation)
             elif title == "Figures":
                 self._check_filenode(title, origin)
                 for lnum, line in enumerate(body):
-                    FigureBlock("Figure", subtitle, [line], origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
+                    FigureBlock("Figure", subtitle, [line], origin, verbose=self.opts.verbose, parent=parent, enabled_features=self.opts.enabled_features, meta=meta, use_apngs=self.opts.png_animation)
                     subtitle = ""
             elif title == "Examples":
                 if self.curr_item:
                     for lnum, line in enumerate(body):
-                        ExampleBlock("Example", subtitle, [line], origin, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
+                        ExampleBlock("Example", subtitle, [line], origin, verbose=self.opts.verbose, enabled_features=self.opts.enabled_features, parent=parent, meta=meta, use_apngs=self.opts.png_animation)
                         subtitle = ""
             elif title == "Log":
                 if self.curr_item:
@@ -445,7 +448,7 @@ class DocsGenParser(object):
                     msg = "Previous declaration of `{}` at {}:{}, Redeclared:".format(subtitle, prevorig.file, prevorig.line)
                     raise DocsGenException(title, msg)
                 item = ItemBlock(title, subtitle, body, origin, parent=parent)
-                self.items_by_name[subtitle] = item
+                self.items_by_name[subtitle.lower()] = item
                 self.curr_item = item
                 self.curr_parent = item
             elif title == "Synopsis":
@@ -722,7 +725,7 @@ class DocsGenParser(object):
             keys, defn = info
             blk = self.file_blocks[0]
             defn = blk.parse_links(defn, self, self.target, html=False)
-            self.definitions[key] = (keys, defn)
+            self.definitions[key.lower()] = (keys, defn)
         if not self.quiet:
             print("")
 
