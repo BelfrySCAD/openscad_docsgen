@@ -4,12 +4,16 @@ from __future__ import print_function
 
 import os
 import re
+import sys
 import math
+import numpy
 import filecmp
 import os.path
 import subprocess
 from collections import namedtuple
 
+from scipy.linalg import norm
+from imageio import imread
 from PIL import Image, ImageChops
 from openscad_runner import RenderMode, OpenScadRunner, ColorScheme
 
@@ -25,7 +29,7 @@ class ImageRequest(object):
     _vpf_re = re.compile(r'VPF *= *([a-zA-Z0-9_()+*/$.-]+)')
     _color_scheme_re = re.compile(r'ColorScheme *= *([a-zA-Z0-9_ ]+)')
 
-    def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False):
+    def __init__(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False, default_colorscheme="Cornfield"):
         self.src_file = src_file
         self.src_line = src_line
         self.image_file = image_file
@@ -48,7 +52,7 @@ class ImageRequest(object):
         self.show_scales = "NoScales" not in image_meta
         self.orthographic = "Perspective" not in image_meta
         self.script_under = False
-        self.color_scheme = ColorScheme.cornfield.value
+        self.color_scheme = default_colorscheme 
 
         if "ThrownTogether" in image_meta:
             self.render_mode = RenderMode.thrown_together
@@ -124,7 +128,7 @@ class ImageRequest(object):
 
         match = self._fps_re.search(image_meta)
         if match:
-            self.frame_ms = int(1000/match.group(1))
+            self.frame_ms = int(1000/float(match.group(1)))
         match = self._framems_re.search(image_meta)
         if match:
             self.frame_ms = int(match.group(1))
@@ -200,10 +204,10 @@ class ImageManager(object):
     def purge_requests(self):
         self.requests = []
 
-    def new_request(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False):
+    def new_request(self, src_file, src_line, image_file, script_lines, image_meta, starting_cb=None, completion_cb=None, verbose=False, default_colorscheme="Cornfield"):
         if "NORENDER" in image_meta:
             raise Exception("Cannot render scripts marked NORENDER")
-        req = ImageRequest(src_file, src_line, image_file, script_lines, image_meta, starting_cb, completion_cb, verbose=verbose)
+        req = ImageRequest(src_file, src_line, image_file, script_lines, image_meta, starting_cb, completion_cb, verbose=verbose,default_colorscheme=default_colorscheme)
         self.requests.append(req)
         return req
 
@@ -288,22 +292,21 @@ class ImageManager(object):
             req.completed("REPLACE", osc)
 
     @staticmethod
-    def image_compare(file1, file2, max_rms=2.0):
+    def image_compare(file1, file2, max_diff=64.0):
         """
         Compare two image files.  Returns true if they are almost exactly the same.
         """
         if file1.endswith(".gif") and file2.endswith(".gif"):
             return filecmp.cmp(file1, file2, shallow=False)
         else:
-            img1 = Image.open(file1)
-            img2 = Image.open(file2)
-            if img1.size != img2.size or img1.getbands() != img2.getbands():
+            img1 = imread(file1).astype(float)
+            img2 = imread(file2).astype(float)
+            if img1.shape != img2.shape:
                 return False
-            diff = ImageChops.difference(img1, img2).histogram()
-            sq = (value * (i % 256) ** 2 for i, value in enumerate(diff))
-            sum_squares = sum(sq)
-            rms = math.sqrt(sum_squares / float(img1.size[0] * img1.size[1]))
-            return rms <= max_rms
+            # calculate the difference and its norms
+            diff = img1 - img2  # elementwise for scipy arrays
+            diff_max = numpy.max(abs(diff))
+            return diff_max <= max_diff
 
 
 image_manager = ImageManager()

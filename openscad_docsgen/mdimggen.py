@@ -122,6 +122,7 @@ class MarkdownImageGen(object):
                                 image_manager.new_request(
                                     fileroot+".md", linenum,
                                     imgfile, script, extyp,
+                                    default_colorscheme=opts.colorscheme,
                                     starting_cb=self.img_started,
                                     completion_cb=self.img_completed
                                 )
@@ -165,7 +166,6 @@ def mdimggen_main():
             data = yaml.safe_load(f)
         if data is not None:
             defaults = data
-
     parser = argparse.ArgumentParser(prog='openscad-mdimggen')
     parser.add_argument('-D', '--docs-dir', default=defaults.get("docs_dir", "docs"),
                         help='The directory to put generated documentation in.')
@@ -180,6 +180,8 @@ def mdimggen_main():
     parser.add_argument('-a', '--png-animation', action="store_true",
                         default=defaults.get("png_animations", True),
                         help='If given, animations are created using animated PNGs instead of GIFs.')
+    parser.add_argument('-C', '--colorscheme', default=defaults.get("ColorScheme", "Cornfield"),
+                        help='The color scheme for rendering images (e.g., Tomorrow).')    
     parser.add_argument('srcfiles', nargs='*', help='List of input markdown files.')
     args = parser.parse_args()
 
