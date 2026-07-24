@@ -96,7 +96,19 @@ def test_header_pat_constant():
 
 def make_parser(tmp_path):
     target = Target_Wiki(docs_dir=str(tmp_path))
-    opts = types.SimpleNamespace(target=target, strict=False, quiet=True)
+    opts = types.SimpleNamespace(
+        target=target,
+        strict=False,
+        quiet=True,
+        gen_toc=True,
+        gen_index=False,
+        gen_topics=False,
+        gen_glossary=False,
+        gen_cheat=False,
+        sidebar_header=[],
+        sidebar_middle=[],
+        sidebar_footer=[],
+    )
     return DocsGenParser(opts)
 
 
@@ -141,6 +153,39 @@ def test_parse_libfile_creates_file_block(tmp_path, monkeypatch):
     parser.parse_lines(LIBFILE_SCAD.splitlines(), src_file="test.scad")
     assert len(parser.file_blocks) == 1
     assert parser.file_blocks[0].subtitle == "test.scad"
+
+
+# --- Integration: parse FileTitle block ---
+
+FILE_TITLE_SCAD = """\
+// LibFile: test.scad
+// FileTitle: Core Shapes
+"""
+
+
+def test_parse_file_title_sets_display_title(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    parser = make_parser(tmp_path)
+    parser.parse_lines(FILE_TITLE_SCAD.splitlines(), src_file="test.scad")
+    assert parser.file_blocks[0].file_title == "Core Shapes"
+    assert parser.file_blocks[0].display_title == "Core Shapes"
+
+
+def test_file_title_is_used_in_toc_and_sidebar(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    parser = make_parser(tmp_path)
+    parser.parse_lines(FILE_TITLE_SCAD.splitlines(), src_file="test.scad")
+
+    parser.write_toc_file()
+    parser.write_sidebar_file()
+
+    toc = (tmp_path / "TOC.md").read_text()
+    sidebar = (tmp_path / "_Sidebar.md").read_text()
+    assert "[Core Shapes](#1-core-shapes)" in toc
+    assert "## 1. [Core Shapes](test.scad)" in toc
+    assert "[Core Shapes](test.scad)" in sidebar
+    assert "[test.scad]" not in toc
+    assert "[test.scad]" not in sidebar
 
 
 # --- Integration: parse Section ---

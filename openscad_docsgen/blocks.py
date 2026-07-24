@@ -351,13 +351,19 @@ class FileBlock(GenericBlock):
         self.includes = []
         self.common_code = []
         self.footnotes = []
+        self.file_title = ""
         self.summary = ""
         self.group = ""
+
+    @property
+    def display_title(self):
+        return self.file_title if self.file_title else self.subtitle
 
     def get_data(self):
         d = super().get_data()
         d["includes"] = self.includes
         d["commoncode"] = self.common_code
+        d["filetitle"] = self.file_title
         d["group"] = self.group
         d["summary"] = self.summary
         d["footnotes"] = [
@@ -387,7 +393,7 @@ class FileBlock(GenericBlock):
             sect for sect in self.children
             if isinstance(sect, SectionBlock)
         ]
-        link = self.get_link(target, label=self.subtitle, currfile=currfile)
+        link = self.get_link(target, label=self.display_title, currfile=currfile)
         out = []
         out.extend(target.header("{}. {}".format(n, link), lev=target.SECTION, esc=False))
         if self.summary:
@@ -419,12 +425,14 @@ class FileBlock(GenericBlock):
             lines.extend(child.get_cheatsheet_lines(controller, target))
         out = []
         if lines:
-            out.extend(target.header("{}: {}".format(self.title, self.subtitle), lev=target.SUBSECTION))
+            title = self.file_title if self.file_title else str(self)
+            out.extend(target.header(title, lev=target.SUBSECTION))
             out.extend(lines)
         return out
 
     def get_file_lines(self, controller, target):
-        out = target.header(str(self), lev=target.FILE)
+        title = self.file_title if self.file_title else str(self)
+        out = target.header(title, lev=target.FILE)
         out.extend(target.markdown_block(self.get_markdown_body(controller, target)))
         for child in self.children:
             if not isinstance(child, SectionBlock):
