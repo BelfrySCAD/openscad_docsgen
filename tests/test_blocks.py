@@ -151,6 +151,35 @@ def test_generic_block_get_data():
     assert d["line"] == 5
 
 
+# --- FileBlock ---
+
+def test_file_block_uses_filename_as_default_display_title():
+    block = FileBlock("LibFile", "mylib.scad", [], make_origin("mylib.scad"))
+    assert block.display_title == "mylib.scad"
+
+
+def test_file_block_uses_explicit_display_title():
+    block = FileBlock("LibFile", "mylib.scad", [], make_origin("mylib.scad"))
+    block.file_title = "Core Shapes"
+    SectionBlock("Section", "Basics", [], make_origin("mylib.scad"), parent=block)
+    assert block.display_title == "Core Shapes"
+    assert block.get_data()["filetitle"] == "Core Shapes"
+
+
+def test_file_block_heading_uses_explicit_display_title():
+    block = FileBlock("LibFile", "mylib.scad", [], make_origin("mylib.scad"))
+    block.file_title = "Core Shapes"
+    lines = block.get_file_lines(make_controller(), make_target())
+    assert lines[0] == "# Core Shapes"
+    assert "mylib.scad" not in lines[0]
+
+
+def test_file_block_heading_keeps_legacy_title_by_default():
+    block = FileBlock("LibFile", "mylib.scad", [], make_origin("mylib.scad"))
+    lines = block.get_file_lines(make_controller(), make_target())
+    assert lines[0] == "# LibFile: mylib.scad"
+
+
 def test_sort_children_back_blocks_last():
     parent = GenericBlock("Parent", "p", [], make_origin())
     c_example = GenericBlock("Example", "e", [], make_origin(), parent=parent)
