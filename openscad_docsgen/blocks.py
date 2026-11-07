@@ -779,9 +779,11 @@ class ItemBlock(LabelBlock):
             funmod = "Const"
         return funmod
 
-    def get_index_line(self, controller, target, file):
+    def get_index_line(self, controller, target, file, label=""):
+        # `label`: an alias's own name, so an index lists it as itself
+        # rather than as a second copy of the main name (BOSL2#2033).
         out = "{} {}{}".format(
-            self.get_link(target, currfile=file),
+            self.get_link(target, currfile=file, label=label),
             self.get_funmod(),
             self.get_synopsis(controller, target),
         )
