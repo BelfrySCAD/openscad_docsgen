@@ -930,7 +930,8 @@ class DocsGenParser(object):
                 for name, item in sorted_items:
                     out.extend(
                         target.bullet_list_item(
-                            item.get_index_line(self, target, self.TOPICFILE)
+                            item.get_index_line(self, target, self.TOPICFILE,
+                                                label="" if name == item.subtitle else name)
                         )
                     )
                 out.extend(target.bullet_list_end())
@@ -979,7 +980,8 @@ class DocsGenParser(object):
         ]))
         for ltr in ltrs_found:
             items = [
-                item.get_index_line(self, target, self.INDEXFILE)
+                item.get_index_line(self, target, self.INDEXFILE,
+                                    label="" if name == item.subtitle else name)
                 for name, item in index_by_letter[ltr]
             ]
             out.extend(target.header(ltr, lev=target.SUBSECTION))
