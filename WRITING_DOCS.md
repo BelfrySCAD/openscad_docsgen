@@ -100,6 +100,16 @@ You can specify what group of files this .scad file is a part of with the `// Fi
 This affects the ordering of files in Table of Contents and CheatSheet files.  This doesn't generate any output text otherwise.
 
 
+FileTitle Block
+---------------
+
+You can give a file a display title that is shown instead of its source filename in generated page headings, tables of contents, sidebars, and cheat sheets:
+
+    // FileTitle: Basic Shapes
+
+The filename from the `File` or `LibFile` block is still used for output files and link targets.
+
+
 FileSummary Block
 -----------------
 
@@ -1140,6 +1150,5 @@ You can also use the DefineHeader block in the config file to make custom block 
     DefineHeader(Text;ItemOnly): Returns
     DefineHeader(BulletList): Side Effects
     DefineHeader(Table;Headers=^Anchor Name|Position): Extra Anchors
-
 
 
